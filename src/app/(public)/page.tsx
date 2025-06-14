@@ -1,32 +1,68 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import CategorySection from '@/components/home/CategorySection';
+import CategoryProductsList from '@/components/home/CategoryProductsList';
+import Footer from "@/components/layout/Footer";
+import AdBannerSlider from '@/components/AdBannerSlider';
+import { Loader2 } from "lucide-react";
+import productApiRequest from "@/app/apiRequests/product";
+import categoryApiRequest from "@/app/apiRequests/category";
+import { GetProductsResType } from "@/schemaValidations/product.model";
+import { GetAllCategoriesResType } from "@/schemaValidations/category.model";
 
 export default function Home() {
-  return (
-    <div className="w-full space-y-4">
-      <div className="relative">
-        <span className="absolute top-0 left-0 w-full h-full bg-black opacity-50 z-10"></span>
-        <Image
-          src="/banner.png"
-          width={400}
-          height={200}
-          quality={100}
-          alt="Banner"
-          className="absolute top-0 left-0 w-full h-full object-cover"
-        />
-        <div className="z-20 relative py-10 md:py-20 px-4 sm:px-10 md:px-20">
-          <h1 className="text-center text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold">
-            Nhon Thien Fashion
-          </h1>
-          <p className="text-center text-sm sm:text-base mt-4">
-            Đồ hiệu đẳng cấp
-          </p>
-        </div>
+  const [products, setProducts] = useState<GetProductsResType["data"]>([]);
+  const [categories, setCategories] = useState<GetAllCategoriesResType["data"]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await productApiRequest.listProduct();
+      console.log('Product response:', response);
+      setProducts(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryApiRequest.listCategory();
+      console.log('Category response:', response);
+      setCategories(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-      <section className="space-y-10 py-16">
-        <h2 className="text-center text-2xl font-bold">
-          Đầy đủ những gì bạn cần
-        </h2>
-      </section>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-white dark:bg-gray-900">
+      <main className="pt-12">
+        <AdBannerSlider />
+        <CategorySection categories={categories} />
+        <section className="bg-white dark:bg-gray-900">
+          <CategoryProductsList products={products} />
+        </section>
+      </main>
+      <Footer />
     </div>
   );
 }

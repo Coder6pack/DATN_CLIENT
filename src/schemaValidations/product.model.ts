@@ -46,6 +46,7 @@ export const ProductSchema = z.object({
   deletedAt: z.date().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
+  inventory: z.number().min(0),
 });
 
 export const GetProductsQuerySchema = z.object({
