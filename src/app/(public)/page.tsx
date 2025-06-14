@@ -17,14 +17,41 @@ export default function Home() {
   const [categories, setCategories] = useState<GetAllCategoriesResType["data"]>([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
 
-  // if (loading) {
-  //   return (
-  //     <div className="flex justify-center items-center h-screen">
-  //       <Loader2 className="h-8 w-8 animate-spin" />
-  //     </div>
-  //   );
-  // }
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await productApiRequest.listProduct();
+      console.log('Product response:', response);
+      setProducts(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryApiRequest.listCategory();
+      console.log('Category response:', response);
+      setCategories(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-white dark:bg-gray-900">

@@ -9,7 +9,6 @@ import productApiRequest from "@/app/apiRequests/product";
 import { GetProductDetailResType } from "@/schemaValidations/product.model";
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { products, Product } from '@/data/products';
 import CategoryProducts from '@/components/home/CategoryProducts';
 
 export default function ProductDetailPage() {
@@ -18,6 +17,9 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<GetProductDetailResType | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [quantity, setQuantity] = useState<number>(1);
 
   useEffect(() => {
     fetchProduct();
@@ -26,10 +28,16 @@ export default function ProductDetailPage() {
   const fetchProduct = async () => {
     try {
       setLoading(true);
-      const response = await productApiRequest.findById(Number(params.id));
-      setProduct(response);
+      const response = await productApiRequest.getProduct(Number(params.id));
+      if (response && response.payload) {
+        setProduct(response.payload);
+      } else {
+        console.error("Invalid response format:", response);
+        setProduct(null);
+      }
     } catch (error) {
       console.error("Error fetching product:", error);
+      setProduct(null);
     } finally {
       setLoading(false);
     }
@@ -52,17 +60,73 @@ export default function ProductDetailPage() {
   }
 
   const handleAddToCart = () => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.basePrice,
-      originalPrice: product.virtualPrice ?? undefined,
-      image: product.images[selectedImage] || '',
-      quantity: 1,
-      color: product.variants[0].options[0],
-      size: product.variants[1].options[0],
-    });
+    console.log('Thêm vào giỏ:', selectedColor, selectedSize);
+    if (!product || !product.variants || product.variants.length === 0) {
+      console.error("Product variants not available");
+      alert("Sản phẩm không có biến thể. Vui lòng kiểm tra lại.");
+      return;
+    }
+    if (product.variants.length === 1) {
+      addToCart({
+        id: String(product.id),
+        name: product.name,
+        price: product.basePrice,
+        originalPrice: product.virtualPrice ?? undefined,
+        image: product.images[selectedImage] || '',
+        quantity: quantity,
+        color: product.variants[0].options[0] || '',
+        size: '',
+      });
+    } else {
+      if (!selectedColor || !selectedSize) {
+        alert("Vui lòng chọn đầy đủ biến thể (màu sắc và kích thước).");
+        return;
+      }
+      addToCart({
+        id: String(product.id),
+        name: product.name,
+        price: product.basePrice,
+        originalPrice: product.virtualPrice ?? undefined,
+        image: product.images[selectedImage] || '',
+        quantity: quantity,
+        color: selectedColor,
+        size: selectedSize,
+      });
+    }
   };
+
+  // Lọc sản phẩm liên quan
+  const relatedProducts: GetProductDetailResType[] = [];
+
+  // Render các biến thể linh hoạt
+  const renderVariants = () => (
+    <div className="space-y-4">
+      {product.variants.map((variant, variantIdx) => (
+        <div key={variant.value + '-' + variantIdx}>
+          <h3 className="font-semibold mb-2">{variant.value}</h3>
+          <div className="flex flex-wrap gap-2">
+            {variant.options.map((option, optionIdx) => (
+              <button
+                key={`${variantIdx}-${optionIdx}-${option}`}
+                onClick={() => {
+                  if (variantIdx === 0) setSelectedColor(option);
+                  if (variantIdx === 1) setSelectedSize(option);
+                }}
+                className={`px-3 py-1 rounded-full ${
+                  (variantIdx === 0 ? selectedColor : selectedSize) === option
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100'
+                }`}
+                type="button"
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="container mx-auto py-8">
@@ -120,6 +184,24 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
+          <div className="mb-4 flex items-center gap-4">
+            <label htmlFor="quantity" className="font-semibold">Số lượng:</label>
+            <input
+              id="quantity"
+              type="number"
+              min={1}
+              max={product.inventory ?? 99}
+              value={quantity}
+              onChange={e => setQuantity(Math.max(1, Math.min(Number(e.target.value), product.inventory ?? 99)))}
+              className="w-20 px-2 py-1 border rounded"
+            />
+            {typeof product.inventory === 'number' && (
+              <span className="text-gray-500">Tồn kho: {product.inventory}</span>
+            )}
+          </div>
+
+          {renderVariants()}
+
           <Button className="w-full" onClick={handleAddToCart}>Thêm vào giỏ hàng</Button>
 
           <Tabs defaultValue="description">
@@ -134,23 +216,7 @@ export default function ProductDetailPage() {
               </div>
             </TabsContent>
             <TabsContent value="specifications" className="mt-4">
-              <div className="space-y-4">
-                {product.variants.map((variant) => (
-                  <div key={variant.value}>
-                    <h3 className="font-semibold mb-2">{variant.value}</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {variant.options.map((option) => (
-                        <span
-                          key={option}
-                          className="px-3 py-1 bg-gray-100 rounded-full text-sm"
-                        >
-                          {option}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {renderVariants()}
             </TabsContent>
             <TabsContent value="reviews" className="mt-4">
               <div className="text-center py-8">
@@ -167,17 +233,12 @@ export default function ProductDetailPage() {
         <p className="text-gray-600 dark:text-gray-400">{product.description}</p>
       </div>
 
-      {/* Lọc sản phẩm liên quan */}
-      const relatedProducts = product
-        ? products.filter((p: Product) => p.category === product.category && p.id !== product.id)
-        : [];
-
       {relatedProducts.length > 0 && (
         <div className="mt-12">
           <CategoryProducts
             title="CÓ THỂ BẠN CŨNG THÍCH"
             products={relatedProducts}
-            category={product.category}
+            category={product.categories[0]?.name || ''}
           />
         </div>
       )}

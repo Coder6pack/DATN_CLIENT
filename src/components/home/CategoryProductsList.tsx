@@ -10,7 +10,10 @@ interface CategoryProductsListProps {
 const CategoryProductsList = ({ products }: CategoryProductsListProps) => {
   // Nhóm sản phẩm theo danh mục
   const productsByCategory = products.reduce((acc, product) => {
-    const category = product.categories[0]?.name || 'Khác';
+    const categories = (product as any).categories ?? [];
+    const category = Array.isArray(categories) && categories[0]?.name
+      ? categories[0].name
+      : 'Khác';
     if (!acc[category]) {
       acc[category] = [];
     }
