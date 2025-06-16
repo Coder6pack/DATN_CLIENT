@@ -1,4 +1,3 @@
-import Footer from "@/components/footer";
 import LoginNav from "./login-nav";
 
 export default function Layout({

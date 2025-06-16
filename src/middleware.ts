@@ -6,11 +6,30 @@ import { Role } from "./constants/type";
 const managePath = ["/manage"];
 const guestPath = ["/guest"];
 const privatePaths = [...managePath, ...guestPath];
-const unAuthPaths = ["/login", "/register", "/forgot-password", "/"];
+const unAuthPaths = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/",
+  "/products",
+  /^\/product\/[^/]+$/,
+  "/cart",
+  "/payment",
+  "/profile",
+  "/orders",
+];
 
 export function middleware(request: NextRequest) {
   const accessToken = request.cookies.get("accessToken")?.value;
   const refreshToken = request.cookies.get("refreshToken")?.value;
+  const isUnAuthPath = (
+    pathname: string,
+    paths: (string | RegExp)[]
+  ): boolean => {
+    return paths.some((path) =>
+      typeof path === "string" ? pathname === path : path.test(pathname)
+    );
+  };
 
   const { pathname } = request.nextUrl;
 
@@ -24,7 +43,8 @@ export function middleware(request: NextRequest) {
   // 2.Trường hợp đã đăng nhập
   if (refreshToken) {
     // 2.1 Nếu cố tình vào trang login thì sẽ redirect về trang chủ
-    if (unAuthPaths.some((path) => pathname.startsWith(path))) {
+    // unAuthPaths.some((path) => pathname.startsWith(path))
+    if (isUnAuthPath(pathname, unAuthPaths)) {
       return NextResponse.redirect(new URL("/", request.url));
     }
     // 2.2 Nhưng accessToken lại hết hạn
@@ -63,5 +83,11 @@ export const config = {
     "/forgot-password",
     "/login",
     "/register",
+    "/products",
+    "/product/:path",
+    "/cart",
+    "/payment",
+    "/profile",
+    "/orders",
   ],
 };

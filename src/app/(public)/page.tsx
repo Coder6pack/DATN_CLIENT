@@ -96,7 +96,7 @@ export default function HomePage() {
         onViewAll={handleViewAllProducts}
       />
 
-      <Newsletter onSubscribe={handleNewsletterSubscribe} />
+      <Newsletter />
     </div>
   );
 }
