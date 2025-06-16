@@ -6,7 +6,7 @@ import { Role } from "./constants/type";
 const managePath = ["/manage"];
 const guestPath = ["/guest"];
 const privatePaths = [...managePath, ...guestPath];
-const unAuthPaths = ["/login", "/register", "/forgot-password"];
+const unAuthPaths = ["/login", "/register", "/forgot-password", "/"];
 
 export function middleware(request: NextRequest) {
   const accessToken = request.cookies.get("accessToken")?.value;

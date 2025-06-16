@@ -11,6 +11,7 @@ const UNAUTHENTICATED_PATH = [
   "/refresh-token",
   "/register",
   "/forgot-password",
+  "/",
 ];
 export default function RefreshToken() {
   const pathname = usePathname();
