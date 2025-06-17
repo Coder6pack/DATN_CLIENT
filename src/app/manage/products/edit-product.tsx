@@ -86,7 +86,7 @@ export default function EditProduct({
       basePrice: 0,
       virtualPrice: 0,
       brandId: undefined,
-      categories: undefined,
+      categories: [],
       images: undefined,
       skus: undefined,
       variants: undefined,

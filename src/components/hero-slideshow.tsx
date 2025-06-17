@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Slide } from "@/types";
+import Link from "next/link";
+import { SlideShowType } from "@/schemaValidations/slide-show.model";
+import { useRouter } from "next/navigation";
 
 interface HeroSlideshowProps {
-  slides: Slide[];
+  slides: SlideShowType[];
   autoAdvanceInterval?: number;
 }
 
@@ -16,7 +18,11 @@ export default function HeroSlideshow({
   autoAdvanceInterval = 5000,
 }: HeroSlideshowProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const router = useRouter();
 
+  const handleOnclick = () => {
+    router.push("/products");
+  };
   useEffect(() => {
     if (slides.length === 0) return;
 
@@ -58,7 +64,7 @@ export default function HeroSlideshow({
         >
           <Image
             src={slide.image || "/placeholder.svg"}
-            alt={slide.title}
+            alt={slide.image}
             fill
             className="object-cover"
             priority={index === 0}
@@ -67,14 +73,18 @@ export default function HeroSlideshow({
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center text-white max-w-2xl px-4">
               <h1 className="text-5xl md:text-6xl font-bold mb-4 animate-fade-in">
-                {slide.title}
+                {/* {slide.title} */}
+                Fashion Store
               </h1>
               <p className="text-xl md:text-2xl mb-8 animate-fade-in-delay">
-                {slide.subtitle}
+                {/* {slide.subtitle} */}
+                Thoải mái, trang trọng và đẳng cấp
               </p>
-              <Button size="lg" className="animate-fade-in-delay-2">
-                {slide.cta}
-              </Button>
+              <Link href="/products" passHref>
+                <Button size="lg" className="animate-fade-in-delay-2">
+                  Mua ngay
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

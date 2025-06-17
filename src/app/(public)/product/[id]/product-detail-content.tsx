@@ -28,12 +28,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import type { ProductDetail, Review, Product } from "@/types";
+import { useGetProduct } from "@/app/queries/useProduct";
+import { ProductType } from "@/shared/models/shared-product.model";
+import { formatCurrency } from "@/lib/utils";
 
 interface ProductDetailContentProps {
   productId: number;
   initialProduct?: ProductDetail;
   initialReviews?: Review[];
-  initialRelatedProducts?: Product[];
+  initialRelatedProducts?: ProductType[];
 }
 
 export default function ProductDetailContent({
@@ -42,74 +45,42 @@ export default function ProductDetailContent({
   initialReviews,
   initialRelatedProducts,
 }: ProductDetailContentProps) {
-  const [product, setProduct] = useState<ProductDetail | null>(
-    initialProduct || null
-  );
   const [reviews, setReviews] = useState<Review[]>(initialReviews || []);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>(
-    initialRelatedProducts || []
-  );
+
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
-  const [loading, setLoading] = useState(!initialProduct);
-  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [selectedVariants, setSelectedVariants] = useState<{
+    [key: string]: string | null;
+  }>({});
+  const { data, isLoading } = useGetProduct({
+    id: productId || 0,
+    enabled: Boolean(productId),
+  });
+  if (!data) {
+    return;
+  }
+  const productDetail = data.payload;
 
-  // Load product data if not provided initially
-  useEffect(() => {
-    if (!initialProduct) {
-      const loadProductData = async () => {
-        setLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        // Mock data loading - replace with actual API calls
-        const { getProductById, getReviewsByProductId, getRelatedProducts } =
-          await import("@/lib/mockData");
-        const productData = getProductById(productId);
-
-        if (productData) {
-          setProduct(productData);
-          setReviews(getReviewsByProductId(productId));
-          setRelatedProducts(
-            getRelatedProducts(productId, productData.category)
-          );
-        }
-
-        setLoading(false);
-      };
-
-      loadProductData();
-    }
-  }, [productId, initialProduct]);
-
+  const totalStock = productDetail.skus.reduce(
+    (acc, item) => acc + item.stock,
+    0
+  );
   const handleQuantityChange = (change: number) => {
     setQuantity((prev) =>
-      Math.max(1, Math.min(product?.stock || 1, prev + change))
+      Math.max(1, Math.min(totalStock || 1, prev + change))
     );
   };
-
+  console.log(selectedVariants);
   const handleAddToCart = () => {
-    if (!selectedSize || !selectedColor) {
+    if (!setSelectedVariants) {
+      console.log(selectedVariants);
       alert("Vui lòng chọn size và màu sắc");
       return;
     }
-    console.log("Add to cart:", {
-      product,
-      selectedSize,
-      selectedColor,
-      quantity,
-    });
-    alert("Đã thêm vào giỏ hàng!");
-  };
 
-  const calculateDiscount = () => {
-    if (!product?.originalPrice) return 0;
-    const original = Number.parseInt(product.originalPrice.replace(/,/g, ""));
-    const current = Number.parseInt(product.price.replace(/,/g, ""));
-    return Math.round(((original - current) / original) * 100);
+    alert("Đã thêm vào giỏ hàng!");
   };
 
   const getRatingDistribution = () => {
@@ -122,7 +93,7 @@ export default function ProductDetailContent({
     ];
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-20">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
@@ -154,7 +125,7 @@ export default function ProductDetailContent({
     );
   }
 
-  if (!product) {
+  if (!productDetail) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
         <h1 className="text-2xl font-bold mb-4">Không tìm thấy sản phẩm</h1>
@@ -188,16 +159,20 @@ export default function ProductDetailContent({
               Sản Phẩm
             </Link>
             <ChevronRight className="h-4 w-4" />
-            <Link
-              href={`/category/${product.category}`}
-              className="hover:text-primary transition-colors font-medium"
-            >
-              {product.category}
-            </Link>
-            <ChevronRight className="h-4 w-4" />
-            <span className="text-foreground font-semibold">
-              {product.name}
-            </span>
+            {productDetail.categories.map((cate) => (
+              <>
+                <Link
+                  href={`/category/${cate.id}`}
+                  className="hover:text-primary transition-colors font-medium"
+                >
+                  {cate.name}
+                </Link>
+                <ChevronRight className="h-4 w-4" />
+                <span className="text-foreground font-semibold">
+                  {productDetail.name}
+                </span>
+              </>
+            ))}
           </nav>
         </div>
       </div>
@@ -216,8 +191,10 @@ export default function ProductDetailContent({
                 onClick={() => setIsImageZoomed(!isImageZoomed)}
               >
                 <Image
-                  src={product.images[selectedImage] || "/placeholder.svg"}
-                  alt={product.name}
+                  src={
+                    productDetail.images[selectedImage] || "/placeholder.svg"
+                  }
+                  alt={productDetail.name}
                   fill
                   className={`object-cover transition-all duration-700 ${
                     isImageZoomed
@@ -226,11 +203,11 @@ export default function ProductDetailContent({
                   }`}
                   priority
                 />
-                {calculateDiscount() > 0 && (
+                {/* {calculateDiscount() > 0 && (
                   <Badge className="absolute top-6 left-6 bg-destructive text-destructive-foreground text-lg px-4 py-2 font-bold">
                     -{calculateDiscount()}%
                   </Badge>
-                )}
+                )} */}
                 <Button
                   variant="secondary"
                   size="icon"
@@ -256,7 +233,8 @@ export default function ProductDetailContent({
                 onClick={() =>
                   setSelectedImage(
                     (prev) =>
-                      (prev - 1 + product.images.length) % product.images.length
+                      (prev - 1 + productDetail.images.length) %
+                      productDetail.images.length
                   )
                 }
               >
@@ -267,7 +245,9 @@ export default function ProductDetailContent({
                 size="icon"
                 className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm hover:bg-background rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() =>
-                  setSelectedImage((prev) => (prev + 1) % product.images.length)
+                  setSelectedImage(
+                    (prev) => (prev + 1) % productDetail.images.length
+                  )
                 }
               >
                 <ChevronRight className="h-5 w-5" />
@@ -285,7 +265,7 @@ export default function ProductDetailContent({
                     }px)`,
                   }}
                 >
-                  {product.images.map((image, index) => (
+                  {productDetail.images.map((image, index) => (
                     <button
                       key={index}
                       className={`flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border-3 transition-all duration-300 ${
@@ -297,7 +277,7 @@ export default function ProductDetailContent({
                     >
                       <Image
                         src={image || "/placeholder.svg"}
-                        alt={`${product.name} ${index + 1}`}
+                        alt={`${productDetail.name} ${index + 1}`}
                         width={96}
                         height={96}
                         className="object-cover w-full h-full"
@@ -308,7 +288,7 @@ export default function ProductDetailContent({
               </div>
 
               {/* Navigation Buttons for Thumbnails */}
-              {product.images.length > 5 && (
+              {productDetail.images.length > 5 && (
                 <>
                   <Button
                     variant="secondary"
@@ -327,10 +307,13 @@ export default function ProductDetailContent({
                     className="absolute -right-4 top-1/2 -translate-y-1/2 bg-white shadow-lg hover:shadow-xl border-2 border-gray-100 hover:border-primary transition-all duration-300 rounded-full w-8 h-8"
                     onClick={() =>
                       setSelectedImage(
-                        Math.min(product.images.length - 1, selectedImage + 1)
+                        Math.min(
+                          productDetail.images.length - 1,
+                          selectedImage + 1
+                        )
                       )
                     }
-                    disabled={selectedImage === product.images.length - 1}
+                    disabled={selectedImage === productDetail.images.length - 1}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -344,9 +327,15 @@ export default function ProductDetailContent({
             {/* Header */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="text-sm px-3 py-1">
-                  {product.category}
-                </Badge>
+                {productDetail.categories.map((cate) => (
+                  <Badge
+                    key={cate.id}
+                    variant="secondary"
+                    className="text-sm px-3 py-1"
+                  >
+                    {cate.name}
+                  </Badge>
+                ))}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -356,11 +345,10 @@ export default function ProductDetailContent({
                   Chia sẻ
                 </Button>
               </div>
-
               <h1 className="text-4xl font-bold text-foreground leading-tight">
-                {product.name}
+                {productDetail.name}
               </h1>
-
+              rating
               <div className="flex items-center space-x-6">
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center">
@@ -368,19 +356,15 @@ export default function ProductDetailContent({
                       <Star
                         key={i}
                         className={`h-5 w-5 ${
-                          i < Math.floor(product.rating)
+                          i < Math.floor(5)
                             ? "fill-yellow-400 text-yellow-400"
                             : "text-muted"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="text-lg font-semibold">
-                    {product.rating}
-                  </span>
-                  <span className="text-muted-foreground">
-                    ({product.reviews} đánh giá)
-                  </span>
+                  <span className="text-lg font-semibold">{5}</span>
+                  <span className="text-muted-foreground">({5} đánh giá)</span>
                 </div>
                 <div className="flex items-center text-muted-foreground">
                   <Eye className="h-4 w-4 mr-1" />
@@ -393,92 +377,58 @@ export default function ProductDetailContent({
             <div className="space-y-2">
               <div className="flex items-center space-x-4">
                 <span className="text-4xl font-bold text-primary">
-                  {product.price}₫
+                  {formatCurrency(productDetail.basePrice)}₫
                 </span>
-                {product.originalPrice && (
+                {formatCurrency(productDetail.basePrice) && (
                   <span className="text-2xl text-muted-foreground line-through">
-                    {product.originalPrice}₫
+                    {formatCurrency(productDetail.virtualPrice)}₫
                   </span>
                 )}
               </div>
-              {calculateDiscount() > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Bạn tiết kiệm được{" "}
-                  <span className="font-semibold text-destructive">
-                    {(
-                      Number.parseInt(
-                        product.originalPrice!.replace(/,/g, "")
-                      ) - Number.parseInt(product.price.replace(/,/g, ""))
-                    ).toLocaleString()}
-                    ₫
-                  </span>
-                </p>
-              )}
             </div>
 
             {/* Description */}
             <div className="prose prose-gray max-w-none">
-              <p className="text-muted-foreground leading-relaxed text-lg">
-                {product.description}
-              </p>
+              <p
+                className="text-muted-foreground leading-relaxed text-lg"
+                dangerouslySetInnerHTML={{ __html: productDetail.description }}
+              />
             </div>
 
-            {/* Color Selection */}
+            {/* variants */}
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Màu sắc</h3>
-              <div className="flex flex-wrap gap-3">
-                {product.colors.map((color) => (
-                  <button
-                    key={color.name}
-                    className={`relative group flex items-center space-x-3 p-3 rounded-2xl border-2 transition-all duration-300 ${
-                      selectedColor === color.name
-                        ? "border-primary bg-primary/5"
-                        : "border-muted hover:border-muted-foreground/50"
-                    }`}
-                    onClick={() => setSelectedColor(color.name)}
-                  >
-                    <div
-                      className="w-8 h-8 rounded-full border-2 border-background shadow-md"
-                      style={{ backgroundColor: color.value }}
-                    />
-                    <span className="font-medium">{color.name}</span>
-                    {selectedColor === color.name && (
-                      <Check className="h-5 w-5 text-primary" />
-                    )}
-                  </button>
-                ))}
-              </div>
+              {productDetail.variants.map((variant, ind) => (
+                <div key={variant.value} className="mb-6">
+                  <h3 className="text-xl font-semibold mb-3">
+                    {variant.value}
+                  </h3>
+                  <div className="flex flex-wrap gap-3">
+                    {variant.options.map((option, index) => (
+                      <button
+                        key={index}
+                        className={`relative group flex items-center space-x-3 p-3 rounded-2xl border-2 transition-all duration-300 ${
+                          selectedVariants[variant.value] === option
+                            ? "border-primary bg-primary/5"
+                            : "border-muted hover:border-muted-foreground/50"
+                        }`}
+                        onClick={() =>
+                          setSelectedVariants((prev) => ({
+                            ...prev,
+                            [variant.value]:
+                              prev[variant.value] === option ? null : option,
+                          }))
+                        }
+                      >
+                        <span className="font-medium">{option}</span>
+                        {selectedVariants[variant.value] === option && (
+                          <Check className="h-5 w-5 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-
-            {/* Size Selection */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold">Kích thước</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary hover:text-primary/80"
-                >
-                  Hướng dẫn chọn size
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size}
-                    className={`px-6 py-3 border-2 rounded-2xl font-semibold transition-all duration-300 min-w-[60px] ${
-                      selectedSize === size
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-muted hover:border-muted-foreground/50"
-                    }`}
-                    onClick={() => setSelectedSize(size)}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Quantity */}
             <div className="space-y-4">
               <h3 className="text-xl font-semibold">Số lượng</h3>
@@ -500,7 +450,7 @@ export default function ProductDetailContent({
                     variant="ghost"
                     size="icon"
                     onClick={() => handleQuantityChange(1)}
-                    disabled={quantity >= product.stock}
+                    disabled={quantity >= totalStock}
                     className="rounded-r-2xl"
                   >
                     <Plus className="h-4 w-4" />
@@ -509,7 +459,7 @@ export default function ProductDetailContent({
                 <span className="text-muted-foreground">
                   Còn lại{" "}
                   <span className="font-semibold text-foreground">
-                    {product.stock}
+                    {totalStock}
                   </span>{" "}
                   sản phẩm
                 </span>
@@ -583,7 +533,7 @@ export default function ProductDetailContent({
                 value="reviews"
                 className="text-lg font-semibold rounded-xl"
               >
-                Đánh giá ({product.reviews})
+                Đánh giá {/*({product.reviews})*/}
               </TabsTrigger>
               <TabsTrigger
                 value="care"
@@ -603,9 +553,9 @@ export default function ProductDetailContent({
                       </h3>
                       <div className="space-y-4">
                         {[
-                          { label: "Thương hiệu", value: product.brand },
-                          { label: "Mã sản phẩm", value: product.sku },
-                          { label: "Chất liệu", value: product.material },
+                          { label: "Thương hiệu", value: productDetail.brand },
+                          { label: "Mã sản phẩm", value: productDetail.skus },
+                          // { label: "Chất liệu", value: product.material },
                           { label: "Xuất xứ", value: "Việt Nam" },
                           {
                             label: "Tình trạng",
@@ -623,7 +573,7 @@ export default function ProductDetailContent({
                             <span
                               className={`font-semibold ${item.color || ""}`}
                             >
-                              {item.value}
+                              {/* {item.value} */}
                             </span>
                           </div>
                         ))}
@@ -633,7 +583,7 @@ export default function ProductDetailContent({
                       <h3 className="text-2xl font-bold mb-6">
                         Đặc điểm nổi bật
                       </h3>
-                      <ul className="space-y-4">
+                      {/* <ul className="space-y-4">
                         {product.features.map((feature, index) => (
                           <li
                             key={index}
@@ -645,7 +595,7 @@ export default function ProductDetailContent({
                             </span>
                           </li>
                         ))}
-                      </ul>
+                      </ul> */}
                     </div>
                   </div>
                 </CardContent>
@@ -659,10 +609,10 @@ export default function ProductDetailContent({
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
                     <div className="text-center space-y-4">
                       <div className="text-6xl font-bold text-primary">
-                        {product.rating}
+                        {/* {product.rating} */}
                       </div>
                       <div className="flex justify-center">
-                        {[...Array(5)].map((_, i) => (
+                        {/* {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
                             className={`h-6 w-6 ${
@@ -671,10 +621,10 @@ export default function ProductDetailContent({
                                 : "text-muted"
                             }`}
                           />
-                        ))}
+                        ))} */}
                       </div>
                       <p className="text-muted-foreground">
-                        Dựa trên {product.reviews} đánh giá
+                        Dựa trên {/*product.reviews*/} đánh giá
                       </p>
                     </div>
 
@@ -776,7 +726,7 @@ export default function ProductDetailContent({
                       <h3 className="text-2xl font-bold mb-6">
                         Hướng dẫn bảo quản
                       </h3>
-                      <ul className="space-y-4">
+                      {/* <ul className="space-y-4">
                         {product.careInstructions.map((instruction, index) => (
                           <li
                             key={index}
@@ -788,7 +738,7 @@ export default function ProductDetailContent({
                             </span>
                           </li>
                         ))}
-                      </ul>
+                      </ul> */}
                     </div>
                     <div className="space-y-6">
                       <h3 className="text-2xl font-bold mb-6">
@@ -830,7 +780,7 @@ export default function ProductDetailContent({
         </div>
 
         {/* Related Products */}
-        <div className="mt-20">
+        {/* <div className="mt-20">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">Sản Phẩm Liên Quan</h2>
             <p className="text-lg text-muted-foreground">
@@ -908,7 +858,7 @@ export default function ProductDetailContent({
               </Card>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </>
   );

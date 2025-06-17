@@ -2,41 +2,31 @@
 
 import { useState, useEffect } from "react";
 import type { Slide, Brand, Category, Product, User } from "@/types";
-import {
-  mockSlides,
-  mockBrands,
-  mockCategories,
-  mockProducts,
-} from "@/lib/mockData";
+import { mockSlides, mockBrands, mockCategories } from "@/lib/mockData";
 import HeroSlideshow from "@/components/hero-slideshow";
 import BrandsSection from "@/components/brands-section";
 import CategoriesCarousel from "@/components/categories-carousel";
 import ProductsSection from "@/components/products-section";
 import Newsletter from "@/components/new-sletter";
+import { useListSlideShow } from "../queries/useSlideShow";
+import { useListBrand } from "../queries/useBrand";
+import { useListCategories } from "../queries/useCategory";
+import { CategoryType } from "@/schemaValidations/category.model";
+import { useListProducts } from "../queries/useProduct";
+import { ProductType } from "@/shared/models/shared-product.model";
 
 export default function HomePage() {
   // State for all data
-  const [slides, setSlides] = useState<Slide[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [user, setUser] = useState<User | undefined>();
   const [cartItemsCount, setCartItemsCount] = useState(0);
+  const { data: slideShows } = useListSlideShow();
+  const { data: brands } = useListBrand();
+  const { data: categories } = useListCategories();
+  const { data: products } = useListProducts();
 
-  // Load mock data
-  useEffect(() => {
-    const loadData = async () => {
-      // Simulate API loading delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      setSlides(mockSlides);
-      setBrands(mockBrands);
-      setCategories(mockCategories);
-      setProducts(mockProducts);
-    };
-
-    loadData();
-  }, []);
+  if (!slideShows || !brands || !categories || !products) {
+    return;
+  }
 
   // Event handlers
   const handleSearch = (query: string) => {
@@ -44,24 +34,24 @@ export default function HomePage() {
     // Implement search logic
   };
 
-  const handleCategoryClick = (category: Category) => {
+  const handleCategoryClick = (category: CategoryType) => {
     console.log("Category clicked:", category);
     // Navigate to category page
   };
 
-  const handleProductClick = (product: Product) => {
+  const handleProductClick = (product: ProductType) => {
     console.log("Product clicked:", product);
     // Navigate to product detail page
     window.location.href = `/product/${product.id}`;
   };
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: ProductType) => {
     console.log("Add to cart:", product);
     setCartItemsCount((prev) => prev + 1);
     // Add to cart logic
   };
 
-  const handleToggleFavorite = (product: Product) => {
+  const handleToggleFavorite = (product: ProductType) => {
     console.log("Toggle favorite:", product);
     // Toggle favorite logic
   };
@@ -79,18 +69,17 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <HeroSlideshow slides={slides} />
+      <HeroSlideshow slides={slideShows.payload.data} />
 
-      <BrandsSection brands={brands} />
+      <BrandsSection brands={brands.payload.data} />
 
       <CategoriesCarousel
-        categories={categories}
+        categories={categories.payload.data}
         onCategoryClick={handleCategoryClick}
       />
 
       <ProductsSection
-        products={products}
-        onProductClick={handleProductClick}
+        products={products.payload.data}
         onAddToCart={handleAddToCart}
         onToggleFavorite={handleToggleFavorite}
         onViewAll={handleViewAllProducts}

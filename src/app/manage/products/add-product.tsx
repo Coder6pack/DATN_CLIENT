@@ -75,10 +75,10 @@ export default function AddProduct() {
       basePrice: 0,
       virtualPrice: 0,
       brandId: undefined,
-      categories: undefined,
-      images: undefined,
-      skus: undefined,
-      variants: undefined,
+      categories: [],
+      images: [],
+      skus: [],
+      variants: [],
     },
   });
   const images = form.watch("images");
@@ -103,7 +103,17 @@ export default function AddProduct() {
   );
 
   const reset = () => {
-    form.reset();
+    form.reset({
+      name: "",
+      description: "",
+      basePrice: 0,
+      virtualPrice: 0,
+      brandId: undefined,
+      categories: [],
+      images: [],
+      skus: [],
+      variants: [],
+    });
     setOpen(false);
     setIsSubmitting(false);
   };

@@ -6,14 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Product } from "@/types";
+import { ProductType } from "@/shared/models/shared-product.model";
+import Link from "next/link";
 
 interface ProductsSectionProps {
-  products: Product[];
+  products: ProductType[];
   title?: string;
   showViewAll?: boolean;
-  onProductClick?: (product: Product) => void;
-  onAddToCart?: (product: Product) => void;
-  onToggleFavorite?: (product: Product) => void;
+  onAddToCart?: (product: ProductType) => void;
+  onToggleFavorite?: (product: ProductType) => void;
   onViewAll?: () => void;
 }
 
@@ -21,7 +22,6 @@ export default function ProductsSection({
   products,
   title = "Sản Phẩm Nổi Bật",
   showViewAll = true,
-  onProductClick,
   onAddToCart,
   onToggleFavorite,
   onViewAll,
@@ -42,75 +42,75 @@ export default function ProductsSection({
         <h2 className="text-3xl font-bold text-center mb-12">{title}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {products.map((product) => (
-            <Card
-              key={product.id}
-              className="group cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => onProductClick?.(product)}
-            >
-              <CardContent className="p-0">
-                <div className="relative overflow-hidden rounded-t-lg">
-                  <Image
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    width={300}
-                    height={400}
-                    className="object-cover w-full h-80 group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <Badge className="absolute top-4 left-4 bg-red-500">
-                    {product.originalPrice ? "Sale" : "New"}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-4 right-4 bg-white/80 hover:bg-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite?.(product);
-                    }}
-                  >
-                    <Heart className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="p-6">
-                  <Badge variant="outline" className="mb-2">
-                    {product.category}
-                  </Badge>
-                  <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
-                  <div className="flex items-center mb-3">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="ml-1 text-sm font-medium">
-                        {product.rating}
-                      </span>
-                    </div>
-                    <span className="text-sm text-muted-foreground ml-2">
-                      ({product.reviews} đánh giá)
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xl font-bold text-primary">
-                        {product.price}₫
-                      </span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-muted-foreground line-through">
-                          {product.originalPrice}₫
-                        </span>
-                      )}
-                    </div>
+            <Link href={`/product/${product.id}`} key={product.id}>
+              <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
+                <CardContent className="p-0">
+                  <div className="relative overflow-hidden rounded-t-lg">
+                    <Image
+                      src={product.images[0] || "/placeholder.svg"}
+                      alt={product.name}
+                      width={300}
+                      height={400}
+                      className="object-cover w-full h-80 group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <Badge className="absolute top-4 left-4 bg-red-500">
+                      {product.virtualPrice ? "Sale" : "New"}
+                    </Badge>
                     <Button
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-4 right-4 bg-white/80 hover:bg-white"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onAddToCart?.(product);
+                        onToggleFavorite?.(product);
                       }}
                     >
-                      Thêm vào giỏ
+                      <Heart className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="p-6">
+                    {/* <Badge variant="outline" className="mb-2">
+                    {product.category}
+                  </Badge> */}
+                    <h3 className="text-lg font-semibold mb-2">
+                      {product.name}
+                    </h3>
+                    <div className="flex items-center mb-3">
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        {/* <span className="ml-1 text-sm font-medium">
+                        {product.rating}
+                      </span> */}
+                      </div>
+                      {/* <span className="text-sm text-muted-foreground ml-2">
+                      ({product.reviews} đánh giá)
+                    </span> */}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xl font-bold text-primary">
+                          {product.basePrice}₫
+                        </span>
+                        {product.virtualPrice && (
+                          <span className="text-sm text-muted-foreground line-through">
+                            {product.virtualPrice}₫
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddToCart?.(product);
+                        }}
+                      >
+                        Thêm vào giỏ
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
         {showViewAll && (

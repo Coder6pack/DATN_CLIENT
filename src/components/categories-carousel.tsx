@@ -6,12 +6,13 @@ import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Category } from "@/types";
+import { CategoryType } from "@/schemaValidations/category.model";
 
 interface CategoriesCarouselProps {
-  categories: Category[];
+  categories: CategoryType[];
   title?: string;
   itemsPerView?: number;
-  onCategoryClick?: (category: Category) => void;
+  onCategoryClick?: (category: CategoryType) => void;
 }
 
 export default function CategoriesCarousel({
@@ -118,7 +119,7 @@ export default function CategoriesCarousel({
                     <CardContent className="p-0 relative">
                       <div className="relative overflow-hidden">
                         <Image
-                          src={category.image || "/placeholder.svg"}
+                          src={category.logo || "/placeholder.svg"}
                           alt={category.name}
                           width={400}
                           height={500}
@@ -134,10 +135,6 @@ export default function CategoriesCarousel({
                             <h3 className="text-xl sm:text-2xl font-bold mb-2 group-hover:text-yellow-300 transition-colors duration-300">
                               {category.name}
                             </h3>
-                            <p className="text-sm opacity-90 mb-4 group-hover:opacity-100 transition-opacity duration-300">
-                              {category.count}
-                            </p>
-
                             {/* Call to Action */}
                             <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-x-4 group-hover:translate-x-0">
                               <span className="text-sm font-medium mr-2">

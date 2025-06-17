@@ -5,9 +5,10 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Brand } from "@/types";
+import { BrandType } from "@/shared/models/shared-brand.model";
 
 interface BrandsSectionProps {
-  brands: Brand[];
+  brands: BrandType[];
   title?: string;
   itemsPerView?: number;
 }

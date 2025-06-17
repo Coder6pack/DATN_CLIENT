@@ -3,10 +3,6 @@
 import { useState, useEffect, use } from "react";
 import ProductDetailContent from "./product-detail-content";
 
-interface ProductDetailPageProps {
-  params: { id: string };
-}
-
 export default function ProductDetailPage({
   params,
 }: {
