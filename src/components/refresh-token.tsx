@@ -104,9 +104,6 @@ const UNAUTHENTICATED_PATH: (string | RegExp)[] = [
   "/products",
   /^\/product\/[^/]+$/, // RegExp để khớp /product/2, /product/abc, v.v.
   "/cart",
-  "/payment",
-  "/profile",
-  "/orders",
 ];
 
 // Hàm kiểm tra xem pathname có nằm trong UNAUTHENTICATED_PATH không

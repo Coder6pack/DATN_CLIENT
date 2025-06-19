@@ -31,6 +31,8 @@ import type { ProductDetail, Review, Product } from "@/types";
 import { useGetProduct } from "@/app/queries/useProduct";
 import { ProductType } from "@/shared/models/shared-product.model";
 import { formatCurrency } from "@/lib/utils";
+import { useAddCartMutation } from "@/app/queries/useCart";
+import { toast } from "@/hooks/use-toast";
 
 interface ProductDetailContentProps {
   productId: number;
@@ -58,6 +60,7 @@ export default function ProductDetailContent({
     id: productId || 0,
     enabled: Boolean(productId),
   });
+  const addToCartMutation = useAddCartMutation();
   if (!data) {
     return;
   }
@@ -72,15 +75,41 @@ export default function ProductDetailContent({
       Math.max(1, Math.min(totalStock || 1, prev + change))
     );
   };
-  console.log(selectedVariants);
-  const handleAddToCart = () => {
-    if (!setSelectedVariants) {
-      console.log(selectedVariants);
-      alert("Vui lòng chọn size và màu sắc");
+  const handleAddToCart = async () => {
+    // Kiểm tra xem tất cả các biến thể đã được chọn chưa
+    const allVariantsSelected = productDetail.variants.every(
+      (variant) => selectedVariants[variant.value]
+    );
+
+    if (!allVariantsSelected) {
+      alert("Vui lòng chọn đầy đủ các biến thể (ví dụ: màu sắc, kích thước)");
       return;
     }
 
-    alert("Đã thêm vào giỏ hàng!");
+    // Tạo chuỗi tổ hợp biến thể từ selectedVariants với định dạng "Trắng-XL"
+    const variantString = Object.values(selectedVariants).join("-");
+
+    // Tìm SKU khớp với tổ hợp biến thể
+    const matchedSku = productDetail.skus.find(
+      (sku) => sku.value === variantString
+    );
+    console.log("matchedSku", matchedSku);
+    if (!matchedSku) {
+      alert("Không tìm thấy SKU phù hợp với tổ hợp biến thể đã chọn");
+      return;
+    }
+
+    // Xử lý thêm vào giỏ hàng với thông tin SKU
+    console.log("SKU đã chọn:", matchedSku);
+    const result = await addToCartMutation.mutateAsync({
+      skuId: matchedSku.id,
+      quantity,
+    });
+    if (result) {
+      toast({
+        description: "Đã thêm vào giỏ hàng!",
+      });
+    }
   };
 
   const getRatingDistribution = () => {
@@ -160,19 +189,18 @@ export default function ProductDetailContent({
             </Link>
             <ChevronRight className="h-4 w-4" />
             {productDetail.categories.map((cate) => (
-              <>
-                <Link
-                  href={`/category/${cate.id}`}
-                  className="hover:text-primary transition-colors font-medium"
-                >
-                  {cate.name}
-                </Link>
-                <ChevronRight className="h-4 w-4" />
-                <span className="text-foreground font-semibold">
-                  {productDetail.name}
-                </span>
-              </>
+              <Link
+                key={cate.id}
+                href={`/category/${cate.id}`}
+                className="hover:text-primary transition-colors font-medium"
+              >
+                {cate.name}
+              </Link>
             ))}
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-foreground font-semibold">
+              {productDetail.name}
+            </span>
           </nav>
         </div>
       </div>

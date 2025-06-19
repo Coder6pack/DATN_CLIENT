@@ -14,15 +14,18 @@ import { useListCategories } from "../queries/useCategory";
 import { CategoryType } from "@/schemaValidations/category.model";
 import { useListProducts } from "../queries/useProduct";
 import { ProductType } from "@/shared/models/shared-product.model";
+import { useAppContext } from "@/components/app-provider";
 
 export default function HomePage() {
   // State for all data
-  const [user, setUser] = useState<User | undefined>();
-  const [cartItemsCount, setCartItemsCount] = useState(0);
+  const { addToCart } = useAppContext();
   const { data: slideShows } = useListSlideShow();
   const { data: brands } = useListBrand();
   const { data: categories } = useListCategories();
-  const { data: products } = useListProducts();
+  const { data: products } = useListProducts({
+    page: 1,
+    limit: 100,
+  });
 
   if (!slideShows || !brands || !categories || !products) {
     return;
@@ -38,17 +41,8 @@ export default function HomePage() {
     console.log("Category clicked:", category);
     // Navigate to category page
   };
-
-  const handleProductClick = (product: ProductType) => {
-    console.log("Product clicked:", product);
-    // Navigate to product detail page
-    window.location.href = `/product/${product.id}`;
-  };
-
   const handleAddToCart = (product: ProductType) => {
-    console.log("Add to cart:", product);
-    setCartItemsCount((prev) => prev + 1);
-    // Add to cart logic
+    addToCart(product);
   };
 
   const handleToggleFavorite = (product: ProductType) => {
@@ -80,7 +74,6 @@ export default function HomePage() {
 
       <ProductsSection
         products={products.payload.data}
-        onAddToCart={handleAddToCart}
         onToggleFavorite={handleToggleFavorite}
         onViewAll={handleViewAllProducts}
       />

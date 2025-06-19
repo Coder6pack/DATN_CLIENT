@@ -2,10 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import productApiRequest from "../apiRequests/product";
 import { UpdateProductBodyType } from "@/schemaValidations/product.model";
 
-export const useListProducts = () => {
+interface ListProductsParams {
+  page?: number;
+  limit?: number;
+}
+export const useListProducts = ({ page, limit }: ListProductsParams) => {
   return useQuery({
-    queryKey: ["list-products"],
-    queryFn: productApiRequest.listProduct,
+    queryKey: ["list-products", page, limit],
+    queryFn: () => productApiRequest.listProduct({ page, limit }),
   });
 };
 

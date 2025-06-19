@@ -5,15 +5,14 @@ import { Star, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Product } from "@/types";
 import { ProductType } from "@/shared/models/shared-product.model";
 import Link from "next/link";
+import { useAppContext } from "./app-provider";
 
 interface ProductsSectionProps {
   products: ProductType[];
   title?: string;
   showViewAll?: boolean;
-  onAddToCart?: (product: ProductType) => void;
   onToggleFavorite?: (product: ProductType) => void;
   onViewAll?: () => void;
 }
@@ -22,15 +21,19 @@ export default function ProductsSection({
   products,
   title = "Sản Phẩm Nổi Bật",
   showViewAll = true,
-  onAddToCart,
   onToggleFavorite,
   onViewAll,
 }: ProductsSectionProps) {
-  if (products.length === 0) {
+  // Lọc sản phẩm hợp lệ
+  const validProducts = products.filter((product) => product && product.id);
+
+  if (validProducts.length === 0) {
     return (
       <section className="py-16 bg-muted/30 transition-colors duration-300">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-muted-foreground">Đang tải sản phẩm...</p>
+          <p className="text-muted-foreground">
+            Không có sản phẩm nào để hiển thị.
+          </p>
         </div>
       </section>
     );
@@ -41,7 +44,7 @@ export default function ProductsSection({
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-12">{title}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((product) => (
+          {validProducts.map((product) => (
             <Link href={`/product/${product.id}`} key={product.id}>
               <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
                 <CardContent className="p-0">
@@ -54,7 +57,9 @@ export default function ProductsSection({
                       className="object-cover w-full h-80 group-hover:scale-105 transition-transform duration-300"
                     />
                     <Badge className="absolute top-4 left-4 bg-red-500">
-                      {product.virtualPrice ? "Sale" : "New"}
+                      {product.virtualPrice !== product.basePrice
+                        ? "Sale"
+                        : "New"}
                     </Badge>
                     <Button
                       variant="ghost"
@@ -69,43 +74,27 @@ export default function ProductsSection({
                     </Button>
                   </div>
                   <div className="p-6">
-                    {/* <Badge variant="outline" className="mb-2">
-                    {product.category}
-                  </Badge> */}
                     <h3 className="text-lg font-semibold mb-2">
                       {product.name}
                     </h3>
                     <div className="flex items-center mb-3">
                       <div className="flex items-center">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        {/* <span className="ml-1 text-sm font-medium">
-                        {product.rating}
-                      </span> */}
+                        <span className="ml-1 text-sm font-medium">{5}</span>
                       </div>
-                      {/* <span className="text-sm text-muted-foreground ml-2">
-                      ({product.reviews} đánh giá)
-                    </span> */}
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="text-xl font-bold text-primary">
-                          {product.basePrice}₫
+                          {product.virtualPrice.toLocaleString("vi-VN")}₫
                         </span>
-                        {product.virtualPrice && (
+                        {product.virtualPrice !== product.basePrice && (
                           <span className="text-sm text-muted-foreground line-through">
-                            {product.virtualPrice}₫
+                            {product.basePrice.toLocaleString("vi-VN")}₫
                           </span>
                         )}
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddToCart?.(product);
-                        }}
-                      >
-                        Thêm vào giỏ
-                      </Button>
+                      <Button size="sm">Xem chi tiết</Button>
                     </div>
                   </div>
                 </CardContent>

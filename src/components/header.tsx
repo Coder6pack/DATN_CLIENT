@@ -1,55 +1,55 @@
 "use client";
+
 import type React from "react";
 import { useState } from "react";
 import Link from "next/link";
-import { Search, ShoppingBag, Menu, X } from "lucide-react";
+import { Search, ShoppingBag, Menu, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import DarkModeToggle from "./dark-mode-toggle";
 import { useAppContext } from "./app-provider";
 import MobileMenu from "./mobile-menu";
 import DropdownUserAvatar from "./dropdown-use-avatar";
+import { useDeleteCartMutation, useListCart } from "@/app/queries/useCart";
+import { toast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
 }
 
 export default function Header({ onSearch }: HeaderProps) {
+  const { isAuth } = useAppContext();
+  const { mutateAsync } = useDeleteCartMutation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: "Áo Sơ Mi Premium",
-      image: "/placeholder.svg?height=60&width=60&text=Áo",
-      price: "1,299,000",
-      quantity: 2,
-      size: "L",
-      color: "Trắng",
-    },
-    {
-      id: 2,
-      name: "Quần Jeans Skinny",
-      image: "/placeholder.svg?height=60&width=60&text=Quần",
-      price: "899,000",
-      quantity: 1,
-      size: "32",
-      color: "Xanh",
-    },
-  ]);
   const [isCartHovered, setIsCartHovered] = useState(false);
-  const { isAuth } = useAppContext();
-
-  // Calculate total items in cart
-  const totalItems = cartItems.reduce(
-    (total, item) => total + item.quantity,
-    0
-  );
-
+  const { data } = useListCart({ page: 1, limit: 10 });
+  if (!data) {
+    return null;
+  }
+  const listCart =
+    data.payload.data.length === 0 ? [] : data.payload.data[0].cartItems;
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
     onSearch?.(query);
+  };
+
+  const handleDeleteCart = async (cartItem: number) => {
+    // console.log("cartItem", cartItem);
+    const result = await mutateAsync({ cartItemIds: [cartItem] });
+    if (!result) {
+      toast({
+        description: "Xoá giỏ hàng thất bại",
+      });
+    }
+  };
+  // Hàm định dạng giá tiền
+  const formatPrice = (price: number) => {
+    return price.toLocaleString("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    });
   };
 
   return (
@@ -117,9 +117,9 @@ export default function Header({ onSearch }: HeaderProps) {
               >
                 <ShoppingBag className="h-5 w-5" />
               </Button>
-              {totalItems > 0 && (
+              {listCart.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium animate-pulse">
-                  {totalItems}
+                  {listCart.reduce((sum, item) => sum + item.quantity, 0)}
                 </span>
               )}
 
@@ -138,11 +138,11 @@ export default function Header({ onSearch }: HeaderProps) {
                         Giỏ hàng
                       </h3>
                       <span className="text-sm text-muted-foreground">
-                        {cartItems.length} sản phẩm
+                        {listCart.length} sản phẩm
                       </span>
                     </div>
 
-                    {cartItems.length === 0 ? (
+                    {listCart.length === 0 || listCart === undefined ? (
                       <div className="text-center py-8">
                         <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                         <p className="text-muted-foreground mb-2">
@@ -155,38 +155,64 @@ export default function Header({ onSearch }: HeaderProps) {
                     ) : (
                       <>
                         <div className="space-y-3 max-h-64 overflow-y-auto">
-                          {cartItems.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                            >
-                              <Image
-                                src={item.image || "/placeholder.svg"}
-                                alt={item.name}
-                                width={50}
-                                height={50}
-                                className="rounded-lg object-cover"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm truncate dark:text-white">
-                                  {item.name}
-                                </h4>
-                                <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                                  <span>Size: {item.size}</span>
-                                  <span>•</span>
-                                  <span>{item.color}</span>
+                          {listCart.map((item) => {
+                            const colorVariant =
+                              item.sku.product.variants?.find(
+                                (v) => v.value === "color"
+                              )?.options[0];
+                            const sizeVariant = item.sku.product.variants?.find(
+                              (v) => v.value === "size"
+                            )?.options[0];
+
+                            return (
+                              <div
+                                key={item.skuId}
+                                className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              >
+                                <Image
+                                  src={item.sku.image || "/placeholder.svg"}
+                                  alt={item.sku.product.name}
+                                  width={50}
+                                  height={50}
+                                  className="rounded-lg object-cover"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm truncate dark:text-white">
+                                    {item.sku.product.name}
+                                  </h4>
+                                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                                    {sizeVariant && (
+                                      <span>Size: {sizeVariant}</span>
+                                    )}
+                                    {sizeVariant && colorVariant && (
+                                      <span>•</span>
+                                    )}
+                                    {colorVariant && (
+                                      <span>{colorVariant}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                      {formatPrice(
+                                        item.sku.product.virtualPrice
+                                      )}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      x{item.quantity}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center justify-between mt-1">
-                                  <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                    {item.price}₫
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    x{item.quantity}
-                                  </span>
-                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteCart(item.id)}
+                                  className="hover:bg-red-100 dark:hover:bg-red-900"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                         <div className="border-t dark:border-gray-700 pt-4 mt-4">
                           <div className="flex justify-between items-center mb-3">
@@ -194,33 +220,30 @@ export default function Header({ onSearch }: HeaderProps) {
                               Tổng cộng:
                             </span>
                             <span className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                              {cartItems
-                                .reduce(
+                              {formatPrice(
+                                listCart.reduce(
                                   (total, item) =>
-                                    total +
-                                    Number.parseInt(
-                                      item.price.replace(/,/g, "")
-                                    ) *
-                                      item.quantity,
+                                    total + item.sku.price * item.quantity,
                                   0
                                 )
-                                .toLocaleString()}
-                              ₫
+                              )}
                             </span>
                           </div>
                           <div className="space-y-2">
                             <Button
                               className="w-full bg-blue-600 hover:bg-blue-700"
                               size="sm"
+                              asChild
                             >
-                              Xem giỏ hàng
+                              <Link href="/cart">Xem giỏ hàng</Link>
                             </Button>
                             <Button
                               variant="outline"
                               className="w-full"
                               size="sm"
+                              asChild
                             >
-                              Thanh toán
+                              <Link href="/checkout">Thanh toán</Link>
                             </Button>
                           </div>
                         </div>
@@ -242,6 +265,7 @@ export default function Header({ onSearch }: HeaderProps) {
                 <span>Đăng nhập</span>
               </Link>
             )}
+
             {/* Mobile Menu Button */}
             <Button
               variant="ghost"

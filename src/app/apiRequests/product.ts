@@ -7,7 +7,8 @@ import {
 } from "@/schemaValidations/product.model";
 
 const productApiRequest = {
-  listProduct: () => http.get<GetProductsResType>("/products"),
+  listProduct: ({ page, limit }: { page?: number; limit?: number }) =>
+    http.get<GetProductsResType>(`/products?page=${page}&limit=${limit}`),
   getProduct: (id: number) =>
     http.get<GetProductDetailResType>(`/products/${id}`),
   createProduct: (body: CreateProductBodyType) =>

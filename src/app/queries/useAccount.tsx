@@ -10,8 +10,14 @@ export const useAccountMe = () => {
 };
 
 export const useUpdateAccountProfileMutation = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: accountApiRequest.updateMe,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["account-me"],
+      });
+    },
   });
 };
 

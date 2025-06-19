@@ -26,20 +26,15 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-
-interface CartItem {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  originalPrice?: number;
-  quantity: number;
-  size: string;
-  color: string;
-  category: string;
-  inStock: boolean;
-  maxQuantity: number;
-}
+import { ProductType } from "@/shared/models/shared-product.model";
+import {
+  useAddCartMutation,
+  useDeleteCartMutation,
+  useListCart,
+  useUpdateCartMutation,
+} from "@/app/queries/useCart";
+import { UpdateCartItemBodyType } from "@/schemaValidations/cart.model";
+import { toast } from "@/hooks/use-toast";
 
 interface RelatedProduct {
   id: number;
@@ -52,77 +47,24 @@ interface RelatedProduct {
   category: string;
 }
 
-interface CartContentProps {
-  initialCartItems?: CartItem[];
-  initialRelatedProducts?: RelatedProduct[];
+interface Variant {
+  value: string; // Tên biến thể (ví dụ: "Màu", "Size")
+  options: string[]; // Giá trị của biến thể (ví dụ: ["Trắng"], ["XL"])
 }
 
-const defaultCartItems: CartItem[] = [
-  {
-    id: 1,
-    name: "Áo Sơ Mi Premium Luxury Collection",
-    image: "/placeholder.svg?height=150&width=150&text=Áo+Sơ+Mi",
-    price: 1299000,
-    originalPrice: 1899000,
-    quantity: 2,
-    size: "L",
-    color: "Trắng",
-    category: "Áo Sơ Mi",
-    inStock: true,
-    maxQuantity: 5,
-  },
-  {
-    id: 2,
-    name: "Quần Jeans Skinny Fit",
-    image: "/placeholder.svg?height=150&width=150&text=Quần+Jeans",
-    price: 899000,
-    originalPrice: 1199000,
-    quantity: 1,
-    size: "32",
-    color: "Xanh đậm",
-    category: "Quần Jeans",
-    inStock: true,
-    maxQuantity: 3,
-  },
-  {
-    id: 3,
-    name: "Giày Sneaker Trắng",
-    image: "/placeholder.svg?height=150&width=150&text=Giày+Sneaker",
-    price: 1899000,
-    quantity: 1,
-    size: "42",
-    color: "Trắng",
-    category: "Giày Dép",
-    inStock: false,
-    maxQuantity: 0,
-  },
-  {
-    id: 4,
-    name: "Túi Xách Tote",
-    image: "/placeholder.svg?height=150&width=150&text=Túi+Xách",
-    price: 799000,
-    originalPrice: 999000,
-    quantity: 1,
-    size: "One Size",
-    color: "Nâu",
-    category: "Phụ Kiện",
-    inStock: true,
-    maxQuantity: 10,
-  },
-  {
-    id: 5,
-    name: "Áo Khoác Blazer Cao Cấp",
-    image: "/placeholder.svg?height=150&width=150&text=Áo+Khoác",
-    price: 1599000,
-    originalPrice: 1999000,
-    quantity: 1,
-    size: "M",
-    color: "Đen",
-    category: "Áo Khoác",
-    inStock: true,
-    maxQuantity: 4,
-  },
-];
+interface Sku {
+  value: string; // Ví dụ: "Trắng-XL"
+  product: {
+    variants: Variant[];
+  };
+}
+interface CartContentProps {
+  initialCartItems: { product: ProductType; quantity: number }[];
+  removeFromCart: (productId: number) => void;
+  updateQuantity: (productId: number, quantity: number) => void;
+  clearCart: () => void;
+  loading: boolean;
+}
 
 const defaultRelatedProducts: RelatedProduct[] = [
   {
@@ -167,21 +109,64 @@ const defaultRelatedProducts: RelatedProduct[] = [
 
 export default function CartContent({
   initialCartItems,
-  initialRelatedProducts,
+  removeFromCart,
+  updateQuantity,
+  clearCart,
+  loading,
 }: CartContentProps) {
-  const [cartItems, setCartItems] = useState<CartItem[]>(
-    initialCartItems || defaultCartItems
-  );
-  const [relatedProducts] = useState<RelatedProduct[]>(
-    initialRelatedProducts || defaultRelatedProducts
-  );
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [relatedProducts] = useState<RelatedProduct[]>(defaultRelatedProducts);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     discount: number;
   } | null>(null);
+  const { mutateAsync } = useUpdateCartMutation();
+  const { mutateAsync: deleteCartMutation } = useDeleteCartMutation();
+  const { data, isLoading } = useListCart({ page: 1, limit: 10 });
+  if (!data) {
+    return null;
+  }
+  const listCart =
+    data.payload.data.length === 0 ? [] : data.payload.data[0].cartItems;
 
+  const handleUpdateCart = async ({
+    id,
+    skuId,
+    quantity,
+  }: {
+    id: number;
+    skuId: number;
+    quantity: number;
+  }) => {
+    // console.log(id, skuId, quantity);
+    const result = await mutateAsync({ id, skuId, quantity });
+  };
+
+  const getAllCart = listCart.map((cart) => cart.id);
+
+  const handleDeleteToggleCart = async (cartItem: number[]) => {
+    // console.log("cartItem", cartItem);
+    const result = await deleteCartMutation({ cartItemIds: cartItem });
+    if (!result) {
+      toast({
+        description: "Xoá giỏ hàng thất bại",
+      });
+    }
+  };
+
+  const handleDeleteCart = async (cartItem: number) => {
+    // console.log("cartItem", cartItem);
+    const result = await deleteCartMutation({ cartItemIds: [cartItem] });
+    if (!result) {
+      toast({
+        description: "Xoá giỏ hàng thất bại",
+      });
+    }
+  };
+  const handleDeleteAllCart = async () => {
+    const result = await deleteCartMutation({ cartItemIds: getAllCart });
+  };
   const toggleSelectItem = (id: number) => {
     setSelectedItems((prev) =>
       prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
@@ -189,46 +174,18 @@ export default function CartContent({
   };
 
   const toggleSelectAll = () => {
-    if (selectedItems.length === cartItems.length) {
+    if (selectedItems.length === listCart.length) {
       setSelectedItems([]);
     } else {
-      setSelectedItems(cartItems.map((item) => item.id));
+      setSelectedItems(listCart.map((item) => item.id));
     }
   };
 
-  const updateQuantity = (id: number, newQuantity: number) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              quantity: Math.max(0, Math.min(newQuantity, item.maxQuantity)),
-            }
-          : item
-      )
-    );
-  };
-
-  const removeItem = (id: number) => {
-    setCartItems((items) => items.filter((item) => item.id !== id));
-    setSelectedItems((prev) => prev.filter((itemId) => itemId !== id));
-  };
-
-  const removeSelectedItems = () => {
-    setCartItems((items) =>
-      items.filter((item) => !selectedItems.includes(item.id))
-    );
+  const removeSelectedItems = async () => {
+    console.log("selectedItems", selectedItems);
+    const result = await handleDeleteToggleCart(selectedItems);
+    selectedItems.forEach((id) => removeFromCart(id));
     setSelectedItems([]);
-  };
-
-  const clearCart = () => {
-    setCartItems([]);
-    setSelectedItems([]);
-  };
-
-  const moveToWishlist = (id: number) => {
-    console.log("Move to wishlist:", id);
-    removeItem(id);
   };
 
   const applyCoupon = () => {
@@ -246,16 +203,24 @@ export default function CartContent({
   const removeCoupon = () => {
     setAppliedCoupon(null);
   };
+  function parseVariants(sku: Sku) {
+    const values = sku.value.split("-"); // Tách "Trắng-XL" thành ["Trắng", "XL"]
+    const variants = sku.product.variants;
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    return variants.map((variant, index) => ({
+      name: variant.value, // Tên biến thể (Màu, Size)
+      value: values[index] || variant.options[0], // Giá trị tương ứng hoặc mặc định
+    }));
+  }
+  const subtotal = listCart.reduce(
+    (sum, item) => sum + item.sku.price * item.quantity,
     0
   );
-  const savings = cartItems.reduce(
+  const savings = listCart.reduce(
     (sum, item) =>
       sum +
-      (item.originalPrice
-        ? (item.originalPrice - item.price) * item.quantity
+      (item.sku.price
+        ? (item.sku.product.virtualPrice - item.sku.price) * item.quantity
         : 0),
     0
   );
@@ -265,7 +230,31 @@ export default function CartContent({
   const shipping = subtotal >= 500000 ? 0 : 30000;
   const total = subtotal - couponDiscount + shipping;
 
-  if (cartItems.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="grid gap-8">
+        {[...Array(3)].map((_, i) => (
+          <Card
+            key={i}
+            className="border-0 shadow-lg rounded-3xl animate-pulse"
+          >
+            <CardContent className="p-8 flex space-x-6">
+              <div className="w-5 h-5 bg-muted rounded" />
+              <div className="w-36 h-36 bg-muted rounded-3xl" />
+              <div className="flex-1 space-y-4">
+                <div className="h-4 bg-muted rounded w-1/2" />
+                <div className="h-3 bg-muted rounded w-1/4" />
+                <div className="h-3 bg-muted rounded w-1/3" />
+                <div className="h-6 bg-muted rounded w-1/4" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (listCart.length === 0) {
     return (
       <div className="text-center py-20">
         <div className="inline-flex items-center justify-center w-32 h-32 bg-muted/30 rounded-full mb-8">
@@ -297,14 +286,13 @@ export default function CartContent({
           <div className="flex items-center space-x-4">
             <Checkbox
               checked={
-                selectedItems.length === cartItems.length &&
-                cartItems.length > 0
+                selectedItems.length === listCart.length && listCart.length > 0
               }
               onCheckedChange={toggleSelectAll}
               className="w-5 h-5"
             />
             <h2 className="text-2xl font-bold text-foreground">
-              Sản phẩm trong giỏ ({cartItems.length})
+              Sản phẩm trong giỏ ({listCart.length})
             </h2>
           </div>
           <div className="flex items-center space-x-3">
@@ -322,7 +310,7 @@ export default function CartContent({
             <Button
               variant="outline"
               size="sm"
-              onClick={clearCart}
+              onClick={handleDeleteAllCart}
               className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
             >
               <X className="h-4 w-4 mr-2" />
@@ -338,7 +326,7 @@ export default function CartContent({
         </div>
 
         <div className="space-y-6">
-          {cartItems.map((item) => (
+          {listCart.map((item) => (
             <Card
               key={item.id}
               className="border-0 shadow-lg rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 bg-card"
@@ -357,24 +345,24 @@ export default function CartContent({
                   {/* Product Image */}
                   <div className="relative">
                     <Image
-                      src={item.image || "/placeholder.svg"}
-                      alt={item.name}
+                      src={item.sku.image || "/placeholder.svg"}
+                      alt={item.sku.product.name}
                       width={140}
                       height={140}
                       className="rounded-3xl object-cover shadow-md"
                     />
-                    {item.originalPrice && (
+                    {item.sku.product.virtualPrice && (
                       <Badge className="absolute -top-3 -right-3 bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
                         -
                         {Math.round(
-                          ((item.originalPrice - item.price) /
-                            item.originalPrice) *
+                          ((item.sku.product.virtualPrice - item.sku.price) /
+                            item.sku.product.virtualPrice) *
                             100
                         )}
                         %
                       </Badge>
                     )}
-                    {!item.inStock && (
+                    {!item.sku.stock && (
                       <div className="absolute inset-0 bg-black/60 rounded-3xl flex items-center justify-center">
                         <Badge
                           variant="destructive"
@@ -389,38 +377,34 @@ export default function CartContent({
                   {/* Product Info */}
                   <div className="flex-1 space-y-4">
                     <div>
-                      <Badge
-                        variant="outline"
-                        className="mb-3 px-3 py-1 rounded-full"
-                      >
-                        {item.category}
-                      </Badge>
                       <h3 className="font-bold text-xl leading-tight mb-2 text-foreground">
-                        {item.name}
+                        {item.sku.product.name}
                       </h3>
                       <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">Size:</span>
-                          <Badge variant="secondary" className="rounded-lg">
-                            {item.size}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">Màu:</span>
-                          <Badge variant="secondary" className="rounded-lg">
-                            {item.color}
-                          </Badge>
-                        </div>
+                        {parseVariants({
+                          value: item.sku.value,
+                          product: { variants: item.sku.product.variants },
+                        }).map((variant) => (
+                          <div
+                            key={variant.name}
+                            className="flex items-center space-x-2"
+                          >
+                            <span className="font-medium">{variant.name}:</span>
+                            <Badge variant="secondary" className="rounded-lg">
+                              {variant.value}
+                            </Badge>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-3">
                       <span className="text-2xl font-bold text-primary">
-                        {item.price.toLocaleString()}₫
+                        {item.sku.price.toLocaleString()}₫
                       </span>
-                      {item.originalPrice && (
+                      {item.sku.product.virtualPrice && (
                         <span className="text-lg text-muted-foreground line-through">
-                          {item.originalPrice.toLocaleString()}₫
+                          {item.sku.product.virtualPrice.toLocaleString()}₫
                         </span>
                       )}
                     </div>
@@ -434,9 +418,13 @@ export default function CartContent({
                             size="icon"
                             className="h-12 w-12 rounded-l-2xl hover:bg-muted"
                             onClick={() =>
-                              updateQuantity(item.id, item.quantity - 1)
+                              handleUpdateCart({
+                                id: item.id,
+                                skuId: item.skuId,
+                                quantity: item.quantity - 1,
+                              })
                             }
-                            disabled={item.quantity <= 1 || !item.inStock}
+                            disabled={item.quantity <= 1 || !item.sku.stock}
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
@@ -448,18 +436,21 @@ export default function CartContent({
                             size="icon"
                             className="h-12 w-12 rounded-r-2xl hover:bg-muted"
                             onClick={() =>
-                              updateQuantity(item.id, item.quantity + 1)
+                              handleUpdateCart({
+                                id: item.id,
+                                skuId: item.skuId,
+                                quantity: item.quantity + 1,
+                              })
                             }
-                            disabled={
-                              item.quantity >= item.maxQuantity || !item.inStock
-                            }
+                            // item.maxQuantity || !
+                            disabled={item.quantity >= item.sku.stock}
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
-                        {item.inStock && (
+                        {item.sku.stock && (
                           <span className="text-sm text-muted-foreground bg-green-50 dark:bg-green-950 px-3 py-1 rounded-full">
-                            Còn {item.maxQuantity} sản phẩm
+                            Còn {item.sku.stock} sản phẩm
                           </span>
                         )}
                       </div>
@@ -468,16 +459,7 @@ export default function CartContent({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => moveToWishlist(item.id)}
-                          className="text-muted-foreground hover:text-red-500 rounded-xl"
-                        >
-                          <Heart className="h-4 w-4 mr-2" />
-                          Yêu thích
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => handleDeleteCart(item.id)}
                           className="text-muted-foreground hover:text-destructive rounded-xl"
                         >
                           <X className="h-4 w-4 mr-2" />
@@ -622,7 +604,7 @@ export default function CartContent({
             <div className="space-y-4">
               <div className="flex justify-between text-lg">
                 <span className="text-foreground">
-                  Tạm tính ({cartItems.length} sản phẩm)
+                  Tạm tính ({listCart.length} sản phẩm)
                 </span>
                 <span className="font-semibold text-foreground">
                   {subtotal.toLocaleString()}₫
@@ -750,7 +732,7 @@ export default function CartContent({
                   height={400}
                   className="object-cover w-full h-80 group-hover:scale-110 transition-transform duration-700"
                 />
-                <Badge className="absolute top-4 left-4 bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
+                <Badge className="absolute top-4 bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
                   {product.originalPrice ? "Sale" : "New"}
                 </Badge>
                 <Button
