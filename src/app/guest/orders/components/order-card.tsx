@@ -26,90 +26,27 @@ import {
 import { useState } from "react";
 import OrderDetail from "./order-detail";
 import ReviewDialog from "./review-dialog";
-
-interface OrderItem {
-  id: number;
-  name: string;
-  image: string;
-  price: string;
-  quantity: number;
-  size?: string;
-  color?: string;
-}
-
-interface Order {
-  id: string;
-  date: string;
-  status: "pending" | "confirmed" | "shipping" | "delivered" | "cancelled";
-  total: string;
-  items: OrderItem[];
-  shippingAddress: {
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-  };
-  paymentMethod: string;
-  trackingNumber?: string;
-  estimatedDelivery?: string;
-  notes?: string;
-}
-
-interface OrderCardProps {
-  order: Order;
-}
-
-const statusConfig = {
-  pending: {
-    label: "Chờ xác nhận",
-    color: "bg-yellow-500",
-    icon: Clock,
-    description: "Đơn hàng đang chờ được xác nhận",
-  },
-  confirmed: {
-    label: "Đã xác nhận",
-    color: "bg-blue-500",
-    icon: CheckCircle,
-    description: "Đơn hàng đã được xác nhận và đang chuẩn bị",
-  },
-  shipping: {
-    label: "Đang giao",
-    color: "bg-purple-500",
-    icon: Truck,
-    description: "Đơn hàng đang trên đường giao đến bạn",
-  },
-  delivered: {
-    label: "Đã giao",
-    color: "bg-green-500",
-    icon: Package,
-    description: "Đơn hàng đã được giao thành công",
-  },
-  cancelled: {
-    label: "Đã hủy",
-    color: "bg-red-500",
-    icon: AlertCircle,
-    description: "Đơn hàng đã bị hủy",
-  },
-};
+import { GetOrderPropsType } from "@/schemaValidations/order.model";
+import { statusConfig } from "@/constants/order.constant";
 
 const getStatusProgress = (status: string) => {
   switch (status) {
-    case "pending":
+    case "PENDING_PAYMENT":
       return 25;
-    case "confirmed":
+    case "PENDING_PICKUP":
       return 50;
-    case "shipping":
+    case "PENDING_DELIVERY":
       return 75;
-    case "delivered":
+    case "DELIVERED":
       return 100;
-    case "cancelled":
+    case "CANCELLED":
       return 0;
     default:
       return 0;
   }
 };
 
-export default function OrderCard({ order }: OrderCardProps) {
+export default function OrderCard({ order }: GetOrderPropsType) {
   const StatusIcon = statusConfig[order.status].icon;
   const [showReviewDialog, setShowReviewDialog] = useState(false);
 
@@ -118,10 +55,12 @@ export default function OrderCard({ order }: OrderCardProps) {
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-lg font-bold">{order.id}</CardTitle>
+            <CardTitle className="text-lg font-bold">
+              {`Đơn hàng ${order.id}`}
+            </CardTitle>
             <p className="text-sm text-muted-foreground flex items-center">
               <Calendar className="h-4 w-4 mr-1" />
-              {new Date(order.date).toLocaleDateString("vi-VN")}
+              {new Date(order.createdAt).toLocaleDateString("vi-VN")}
             </p>
           </div>
           <Badge
@@ -158,21 +97,26 @@ export default function OrderCard({ order }: OrderCardProps) {
             {order.items.slice(0, 2).map((item) => (
               <div key={item.id} className="flex items-center space-x-3">
                 <Image
-                  src={item.image || "/placeholder.svg"}
-                  alt={item.name}
+                  src={item.image}
+                  alt={item.productName}
                   width={50}
                   height={50}
                   className="rounded-lg object-cover"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.name}</p>
+                  <p className="text-sm font-medium truncate">
+                    {item.productName}
+                  </p>
                   <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                    {item.size && <span>Size: {item.size}</span>}
-                    {item.color && <span>Màu: {item.color}</span>}
-                    <span>SL: {item.quantity}</span>
+                    {item.skuValue.split("-").length > 1
+                      ? item.skuValue.split("-").map((val) => `${val} • `)
+                      : item.skuValue.split("-").map((val) => `${val}`)}{" "}
+                    x{item.quantity}
                   </div>
                 </div>
-                <span className="text-sm font-semibold">{item.price}₫</span>
+                <span className="text-sm font-semibold">
+                  {item.skuPrice.toLocaleString()}₫
+                </span>
               </div>
             ))}
             {order.items.length > 2 && (
@@ -188,26 +132,27 @@ export default function OrderCard({ order }: OrderCardProps) {
           <div className="flex justify-between items-center">
             <span className="font-semibold">Tổng tiền:</span>
             <span className="text-lg font-bold text-primary">
-              {order.total}₫
+              {order.items
+                .reduce((acc, item) => acc + item.skuPrice, 0)
+                .toLocaleString()}
+              ₫
             </span>
           </div>
 
-          {order.trackingNumber && (
+          {order.paymentId && (
             <div className="flex items-center space-x-2 text-sm">
               <Package className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Mã vận đơn:</span>
-              <span className="font-mono font-medium">
-                {order.trackingNumber}
-              </span>
+              <span className="font-mono font-medium">{`DH${order.paymentId}`}</span>
             </div>
           )}
 
-          {order.estimatedDelivery && (
+          {order.createdAt && (
             <div className="flex items-center space-x-2 text-sm">
               <Truck className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Dự kiến giao:</span>
               <span className="font-medium">
-                {new Date(order.estimatedDelivery).toLocaleDateString("vi-VN")}
+                {new Date(order.createdAt).toLocaleDateString("vi-VN")}
               </span>
             </div>
           )}
@@ -229,11 +174,11 @@ export default function OrderCard({ order }: OrderCardProps) {
                   <span>Chi tiết đơn hàng {order.id}</span>
                 </DialogTitle>
               </DialogHeader>
-              <OrderDetail order={order} />
+              <OrderDetail orderId={order.id} />
             </DialogContent>
           </Dialog>
 
-          {order.status === "delivered" && (
+          {order.status === "DELIVERED" && (
             <>
               <Button
                 size="sm"
@@ -243,23 +188,23 @@ export default function OrderCard({ order }: OrderCardProps) {
                 <Star className="h-4 w-4 mr-2" />
                 Đánh giá
               </Button>
-              <ReviewDialog
+              {/* <ReviewDialog
                 isOpen={showReviewDialog}
                 onClose={() => setShowReviewDialog(false)}
                 orderItems={order.items}
                 orderId={order.id}
-              />
+              /> */}
             </>
           )}
 
-          {order.status === "shipping" && (
+          {order.status === "PENDING_PICKUP" && (
             <Button size="sm" variant="secondary" className="flex-1">
               <MapPin className="h-4 w-4 mr-2" />
               Theo dõi
             </Button>
           )}
 
-          {order.status === "pending" && (
+          {order.status === "CANCELLED" && (
             <Button size="sm" variant="destructive" className="flex-1">
               <AlertCircle className="h-4 w-4 mr-2" />
               Hủy đơn

@@ -2,154 +2,35 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import {
-  Settings,
-  Package,
-  Lock,
-  Shield,
-  Eye,
-  EyeOff,
-  CheckCircle,
-  AlertCircle,
-  Truck,
-  Clock,
-} from "lucide-react";
+import { Settings, Package, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import AvatarUpload from "./avatar-upload";
-import OrderDetailModal from "./order-detail-model";
+import OrderDetail from "./order-detail-model";
 import UploadProfileGuestForm from "./upload-profile-guest-form";
 import { useAccountMe } from "@/app/queries/useAccount";
 import ChangeGuestPassword from "./change-guest-password";
+import { useListOrder } from "@/app/queries/useOrder";
+import { statusConfig } from "@/constants/order.constant";
 
-interface UserProfile {
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  avatar: string;
-  dateOfBirth: string;
-  gender: string;
-  address: string;
-  city: string;
-  district: string;
-  ward: string;
-  joinDate: string;
-  totalOrders: number;
-  totalSpent: number;
-}
-
-interface RecentOrder {
-  id: string;
-  date: string;
-  status: "pending" | "confirmed" | "shipping" | "delivered" | "cancelled";
-  total: string;
-  itemCount: number;
-  image: string;
-  items: Array<{
-    id: number;
-    name: string;
-    image: string;
-    price: string;
-    quantity: number;
-    size?: string;
-    color?: string;
-  }>;
-  shippingAddress: {
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-  };
-  paymentMethod: string;
-  trackingNumber?: string;
-  estimatedDelivery?: string;
-  notes?: string;
-}
-
-interface ProfileContentProps {
-  initialProfile?: UserProfile;
-  initialOrders?: RecentOrder[];
-}
-
-const statusConfig = {
-  pending: { label: "Chờ xác nhận", color: "bg-yellow-500", icon: Clock },
-  confirmed: { label: "Đã xác nhận", color: "bg-blue-500", icon: CheckCircle },
-  shipping: { label: "Đang giao", color: "bg-purple-500", icon: Truck },
-  delivered: { label: "Đã giao", color: "bg-green-500", icon: Package },
-  cancelled: { label: "Đã hủy", color: "bg-red-500", icon: AlertCircle },
-};
-
-export default function ProfileContent({
-  initialProfile,
-  initialOrders,
-}: ProfileContentProps) {
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>(
-    initialOrders || [
-      {
-        id: "ORD-2024-001",
-        date: "2024-01-20",
-        status: "delivered",
-        total: "2,599,000",
-        itemCount: 3,
-        image: "/placeholder.svg?height=60&width=60&text=Order1",
-        items: [
-          {
-            id: 1,
-            name: "Áo Sơ Mi Premium",
-            image: "/placeholder.svg?height=80&width=80&text=Áo",
-            price: "1,299,000",
-            quantity: 1,
-            size: "L",
-            color: "Trắng",
-          },
-          {
-            id: 2,
-            name: "Quần Jeans",
-            image: "/placeholder.svg?height=80&width=80&text=Quần",
-            price: "899,000",
-            quantity: 1,
-            size: "32",
-            color: "Xanh",
-          },
-        ],
-        shippingAddress: {
-          name: "Nguyễn Văn An",
-          phone: "0123456789",
-          address: "123 Đường Lê Lợi, Phường Bến Nghé",
-          city: "TP. Hồ Chí Minh",
-        },
-        paymentMethod: "Thẻ tín dụng",
-        trackingNumber: "VN123456789",
-        estimatedDelivery: "2024-01-22",
-      },
-    ]
-  );
-
-  const [saving, setSaving] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<RecentOrder | null>(null);
+export default function ProfileContent() {
+  const [selectedOrderId, setSelectedOrderId] = useState<number>(0);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
   const { data } = useAccountMe();
-
+  const { data: listOrder } = useListOrder({ page: 1, limit: 100 });
+  if (!data || !listOrder) {
+    return <div className="text-center">Loading...</div>;
+  }
   const profile = data?.payload;
-  const handleViewOrderDetail = (order: RecentOrder) => {
-    setSelectedOrder(order);
+  const orders = listOrder.payload.data;
+  const handleViewOrderDetail = (order: number) => {
+    setSelectedOrderId(order);
     setIsOrderModalOpen(true);
   };
-
+  const orderItems = orders.map((order) => order.items).flat();
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
       {/* Profile Sidebar */}
@@ -168,13 +49,23 @@ export default function ProfileContent({
                 <span className="text-sm font-medium text-blue-700">
                   Tổng đơn hàng
                 </span>
-                <span className="font-bold text-blue-800">100</span>
+                <span className="font-bold text-blue-800">
+                  {orders.length ?? 0}
+                </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl">
                 <span className="text-sm font-medium text-green-700">
                   Tổng chi tiêu
                 </span>
-                <span className="font-bold text-green-800">{10000000}₫</span>
+                <span className="font-bold text-green-800">
+                  {orderItems
+                    .reduce(
+                      (acc, item) => acc + item.quantity * item.skuPrice,
+                      0
+                    )
+                    .toLocaleString()}
+                  ₫
+                </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl">
                 <span className="text-sm font-medium text-purple-700">
@@ -221,7 +112,6 @@ export default function ProfileContent({
           <TabsContent value="profile">
             <UploadProfileGuestForm />
           </TabsContent>
-          showCurrentPassword
           {/* Orders */}
           <TabsContent value="orders">
             <Card className="border-0 shadow-xl rounded-3xl overflow-hidden transition-colors duration-300">
@@ -235,7 +125,7 @@ export default function ProfileContent({
               </CardHeader>
               <CardContent className="p-8">
                 <div className="space-y-6">
-                  {recentOrders.map((order) => {
+                  {orders.map((order) => {
                     const StatusIcon = statusConfig[order.status].icon;
                     return (
                       <div
@@ -243,7 +133,7 @@ export default function ProfileContent({
                         className="flex items-center space-x-4 p-6 bg-muted/50 rounded-2xl hover:bg-muted transition-colors cursor-pointer"
                       >
                         <Image
-                          src={order.image || "/placeholder.svg"}
+                          src={order.items.map((item) => item.image)[0]}
                           alt={`Order ${order.id}`}
                           width={60}
                           height={60}
@@ -263,13 +153,26 @@ export default function ProfileContent({
                           </div>
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                             <span>
-                              {new Date(order.date).toLocaleDateString("vi-VN")}
+                              {new Date(order.createdAt).toLocaleDateString(
+                                "vi-VN"
+                              )}
                             </span>
                             <span>•</span>
-                            <span>{order.itemCount} sản phẩm</span>
+                            <span>
+                              {order.items.reduce(
+                                (acc, item) => acc + item.quantity,
+                                0
+                              )}{" "}
+                              sản phẩm
+                            </span>
                             <span>•</span>
                             <span className="font-semibold text-primary">
-                              {order.total}₫
+                              {order.items.reduce(
+                                (sum, item) =>
+                                  sum + item.quantity * item.skuPrice,
+                                0
+                              )}
+                              ₫
                             </span>
                           </div>
                         </div>
@@ -277,7 +180,7 @@ export default function ProfileContent({
                           variant="outline"
                           size="sm"
                           className="rounded-xl"
-                          onClick={() => handleViewOrderDetail(order)}
+                          onClick={() => handleViewOrderDetail(order.id)}
                         >
                           Xem chi tiết
                         </Button>
@@ -308,8 +211,8 @@ export default function ProfileContent({
       </div>
 
       {/* Order Detail Modal */}
-      <OrderDetailModal
-        order={selectedOrder}
+      <OrderDetail
+        orderId={selectedOrderId}
         isOpen={isOrderModalOpen}
         onClose={() => setIsOrderModalOpen(false)}
       />

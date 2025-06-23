@@ -243,10 +243,7 @@ export default function OrderDetail({ id, setId }: OrderDetailProps) {
                       className="flex items-center gap-4 p-4 border rounded-lg"
                     >
                       <Avatar className="w-16 h-16 rounded-md">
-                        <AvatarImage
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.productName}
-                        />
+                        <AvatarImage src={item.image} alt={item.productName} />
                         <AvatarFallback className="rounded-md">
                           {item.productName.charAt(0)}
                         </AvatarFallback>

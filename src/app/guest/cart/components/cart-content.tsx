@@ -35,6 +35,7 @@ import {
 } from "@/app/queries/useCart";
 import { UpdateCartItemBodyType } from "@/schemaValidations/cart.model";
 import { toast } from "@/hooks/use-toast";
+import { parseVariants } from "@/lib/utils";
 
 interface RelatedProduct {
   id: number;
@@ -66,56 +67,8 @@ interface CartContentProps {
   loading: boolean;
 }
 
-const defaultRelatedProducts: RelatedProduct[] = [
-  {
-    id: 6,
-    name: "Váy Maxi Hoa Nhí",
-    image: "/placeholder.svg?height=200&width=200&text=Váy+Maxi",
-    price: 1299000,
-    rating: 4.9,
-    reviews: 156,
-    category: "Váy Đầm",
-  },
-  {
-    id: 7,
-    name: "Áo Polo Nam Cao Cấp",
-    image: "/placeholder.svg?height=200&width=200&text=Áo+Polo",
-    price: 699000,
-    rating: 4.7,
-    reviews: 145,
-    category: "Áo Polo",
-  },
-  {
-    id: 8,
-    name: "Quần Tây Công Sở",
-    image: "/placeholder.svg?height=200&width=200&text=Quần+Tây",
-    price: 1199000,
-    originalPrice: 1499000,
-    rating: 4.6,
-    reviews: 78,
-    category: "Quần Tây",
-  },
-  {
-    id: 9,
-    name: "Giày Oxford Da Thật",
-    image: "/placeholder.svg?height=200&width=200&text=Giày+Oxford",
-    price: 2299000,
-    originalPrice: 2799000,
-    rating: 4.8,
-    reviews: 234,
-    category: "Giày Dép",
-  },
-];
-
-export default function CartContent({
-  initialCartItems,
-  removeFromCart,
-  updateQuantity,
-  clearCart,
-  loading,
-}: CartContentProps) {
+export default function CartContent({ removeFromCart }: CartContentProps) {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
-  const [relatedProducts] = useState<RelatedProduct[]>(defaultRelatedProducts);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
@@ -139,14 +92,12 @@ export default function CartContent({
     skuId: number;
     quantity: number;
   }) => {
-    // console.log(id, skuId, quantity);
     const result = await mutateAsync({ id, skuId, quantity });
   };
 
   const getAllCart = listCart.map((cart) => cart.id);
 
   const handleDeleteToggleCart = async (cartItem: number[]) => {
-    // console.log("cartItem", cartItem);
     const result = await deleteCartMutation({ cartItemIds: cartItem });
     if (!result) {
       toast({
@@ -156,7 +107,6 @@ export default function CartContent({
   };
 
   const handleDeleteCart = async (cartItem: number) => {
-    // console.log("cartItem", cartItem);
     const result = await deleteCartMutation({ cartItemIds: [cartItem] });
     if (!result) {
       toast({
@@ -182,7 +132,6 @@ export default function CartContent({
   };
 
   const removeSelectedItems = async () => {
-    console.log("selectedItems", selectedItems);
     const result = await handleDeleteToggleCart(selectedItems);
     selectedItems.forEach((id) => removeFromCart(id));
     setSelectedItems([]);
@@ -203,15 +152,6 @@ export default function CartContent({
   const removeCoupon = () => {
     setAppliedCoupon(null);
   };
-  function parseVariants(sku: Sku) {
-    const values = sku.value.split("-"); // Tách "Trắng-XL" thành ["Trắng", "XL"]
-    const variants = sku.product.variants;
-
-    return variants.map((variant, index) => ({
-      name: variant.value, // Tên biến thể (Màu, Size)
-      value: values[index] || variant.options[0], // Giá trị tương ứng hoặc mặc định
-    }));
-  }
   const subtotal = listCart.reduce(
     (sum, item) => sum + item.sku.price * item.quantity,
     0
@@ -345,7 +285,7 @@ export default function CartContent({
                   {/* Product Image */}
                   <div className="relative">
                     <Image
-                      src={item.sku.image || "/placeholder.svg"}
+                      src={item.sku.image}
                       alt={item.sku.product.name}
                       width={140}
                       height={140}
@@ -670,7 +610,7 @@ export default function CartContent({
               className="w-full text-lg font-bold py-6 rounded-2xl bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg"
               asChild
             >
-              <Link href="/payment">
+              <Link href="/guest/payment">
                 <CreditCard className="h-5 w-5 mr-2" />
                 Thanh toán ngay
               </Link>
@@ -718,7 +658,7 @@ export default function CartContent({
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {relatedProducts.map((product) => (
+          {/* {relatedProducts.map((product) => (
             <Card
               key={product.id}
               className="group cursor-pointer hover:shadow-2xl transition-all duration-500 border-0 shadow-lg rounded-3xl overflow-hidden hover:-translate-y-2 bg-card"
@@ -726,7 +666,7 @@ export default function CartContent({
             >
               <div className="relative overflow-hidden">
                 <Image
-                  src={product.image || "/placeholder.svg"}
+                  src={product.image}
                   alt={product.name}
                   width={300}
                   height={400}
@@ -741,7 +681,6 @@ export default function CartContent({
                   className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log("Add to favorites:", product);
                   }}
                 >
                   <Heart className="h-4 w-4" />
@@ -774,7 +713,7 @@ export default function CartContent({
                 </div>
               </div>
             </Card>
-          ))}
+          ))} */}
         </div>
       </div>
     </div>

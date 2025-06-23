@@ -219,9 +219,7 @@ export default function ProductDetailContent({
                 onClick={() => setIsImageZoomed(!isImageZoomed)}
               >
                 <Image
-                  src={
-                    productDetail.images[selectedImage] || "/placeholder.svg"
-                  }
+                  src={productDetail.images[selectedImage]}
                   alt={productDetail.name}
                   fill
                   className={`object-cover transition-all duration-700 ${
@@ -304,7 +302,7 @@ export default function ProductDetailContent({
                       onClick={() => setSelectedImage(index)}
                     >
                       <Image
-                        src={image || "/placeholder.svg"}
+                        src={image}
                         alt={`${productDetail.name} ${index + 1}`}
                         width={96}
                         height={96}
@@ -689,7 +687,7 @@ export default function ProductDetailContent({
                       >
                         <div className="flex items-start space-x-4">
                           <Image
-                            src={review.avatar || "/placeholder.svg"}
+                            src={review.avatar}
                             alt={review.user}
                             width={50}
                             height={50}

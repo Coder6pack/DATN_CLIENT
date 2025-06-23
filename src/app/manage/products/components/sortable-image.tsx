@@ -53,7 +53,7 @@ export function SortableImage({
       </div>
 
       <img
-        src={url || "/placeholder.svg"}
+        src={url}
         alt="Product"
         className="w-full h-full object-cover aspect-square"
       />

@@ -15,7 +15,7 @@ import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLoginMutation } from "@/app/queries/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { handleHttpErrorApi } from "@/lib/utils";
+import { decodeToken, handleHttpErrorApi } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoginBodySchema, LoginBodyType } from "@/schemaValidations/auth.model";
 import { useAppContext } from "@/components/app-provider";
@@ -44,11 +44,25 @@ export default function LoginForm() {
     if (loginMutation.isPending) return;
     try {
       const result = await loginMutation.mutateAsync(data);
-      toast({
-        description: "Login successfully",
-      });
-      setIsAuth(true);
-      route.push("/manage/dashboard");
+      const role = decodeToken(result.payload.refreshToken).roleName;
+      if (result) {
+        if (role === "Admin") {
+          toast({
+            description: "Login Admin successfully",
+          });
+          setIsAuth(true);
+          route.refresh();
+          route.push("/manage/dashboard");
+        }
+        if (role === "Client") {
+          toast({
+            description: "Login Guest successfully",
+          });
+          route.refresh();
+          setIsAuth(true);
+          route.push("/");
+        }
+      }
     } catch (error) {
       handleHttpErrorApi({ error, setError: form.setError });
     }

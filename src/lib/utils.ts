@@ -7,8 +7,22 @@ import { EntityError } from "./http";
 import { toast } from "@/hooks/use-toast";
 import { authApiRequest } from "@/app/apiRequests/auth";
 import { AccessTokenPayload } from "@/types/token.type";
+import envConfig from "@/config";
+import { io } from "socket.io-client";
+import { addDays } from "date-fns";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+interface Variant {
+  value: string; // Tên biến thể (ví dụ: "Màu", "Size")
+  options: string[]; // Giá trị của biến thể (ví dụ: ["Trắng"], ["XL"])
+}
+interface Sku {
+  value: string; // Ví dụ: "Trắng-XL"
+  product: {
+    variants: Variant[];
+  };
 }
 
 // Hàm đặt cookie
@@ -143,52 +157,7 @@ export const checkAndRefreshToken = async (param?: {
     param?.onError?.();
   }
 };
-//   onError?: () => void;
-//   onSuccess?: () => void;
-// }) => {
-//   // Không nên đưa logic lấy access và refresh token ra khỏi cái function `checkAndRefreshToken`
-//   // Vì để mỗi lần mà checkAndRefreshToken() được gọi thì chúng ta se có một access và refresh token mới
-//   // Tránh hiện tượng bug nó lấy access và refresh token cũ ở lần đầu rồi gọi cho các lần tiếp theo
-//   const accessToken = getAccessTokenFromLocalStorage();
-//   const refreshToken = getRefreshTokenFromLocalStorage();
-//   // Chưa đăng nhập thì cũng không cho chạy
-//   if (!accessToken || !refreshToken) return;
-//   const decodedAccessToken = jwt.decode(accessToken) as {
-//     exp: number;
-//     iat: number;
-//   };
-//   const decodedRefreshToken = jwt.decode(refreshToken) as {
-//     exp: number;
-//     iat: number;
-//   };
-//   // Thời điểm hết hạn của token là tính theo epoch time (s)
-//   // Còn khi các bạn dùng cú pháp new Date().getTime() thì nó sẽ trả về epoch time (ms)
-//   const now = Math.round(new Date().getTime() / 1000);
-//   // trường hợp refresh token hết hạn thì không xử lý nữa
-//   // trường hợp refresh token hết hạn thì cho logoutAdd commentMore actions
-//   if (decodedRefreshToken.exp <= now) {
-//     removeTokensFromLocalStorage();
-//     return param?.onError && param.onError();
-//   }
-//   // Ví dụ access token của chúng ta có thời gian hết hạn là 10s
-//   // thì mình sẽ kiểm tra còn 1/3 thời gian (3s) thì mình sẽ cho refresh token lại
-//   // Thời gian còn lại sẽ tính dựa trên công thức: decodedAccessToken.exp - now
-//   // Thời gian hết hạn của access token dựa trên công thức: decodedAccessToken.exp - decodedAccessToken.iat
-//   if (
-//     decodedAccessToken.exp - now <
-//     (decodedAccessToken.exp - decodedAccessToken.iat) / 3
-//   ) {
-//     // Gọi API refresh token
-//     try {
-//       const res = await authApiRequest.refreshToken();
-//       setAccessTokenToLocalStorage(res.payload.accessToken);
-//       setRefreshTokenToLocalStorage(res.payload.refreshToken);
-//       param?.onSuccess && param.onSuccess();
-//     } catch (error) {
-//       param?.onError && param.onError();
-//     }
-//   }
-// };
+
 export function formatCurrency(currency: number) {
   return new Intl.NumberFormat("de-DE").format(currency);
 }
@@ -253,3 +222,66 @@ export async function addBlobUrlToFormData(
   });
   return formData;
 }
+
+export function parseVariants(sku: Sku) {
+  const values = sku.value.split("-"); // Tách "Trắng-XL" thành ["Trắng", "XL"]
+  const variants = sku.product.variants;
+
+  return variants.map((variant, index) => ({
+    name: variant.value, // Tên biến thể (Màu, Size)
+    value: values[index] || variant.options[0], // Giá trị tương ứng hoặc mặc định
+  }));
+}
+
+export function parseVariantValue(sku: Sku) {
+  const values = sku.value.split("-"); // Tách "Trắng-XL" thành ["Trắng", "XL"]
+  const variants = sku.product.variants;
+
+  return variants.map((variant, index) => ({
+    value: values[index] || variant.options[0], // Giá trị tương ứng hoặc mặc định
+  }));
+}
+export function generateQrCode({
+  total,
+  paymentId,
+}: {
+  total: number;
+  paymentId: number;
+}) {
+  return `https://qr.sepay.vn/img?acc=${envConfig.NEXT_PUBLIC_ACC}&bank=${envConfig.NEXT_PUBLIC_BANK_NAME_SHORT}&amount=${total}&des=DH${paymentId}`;
+}
+export const generateSocketInstace = (accessToken: string) => {
+  return io("http://localhost:3003", {
+    auth: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+};
+
+export const getStatusProgress = (status: string) => {
+  switch (status) {
+    case "PENDING_PAYMENT":
+      return 25;
+    case "PENDING_PICKUP":
+      return 50;
+    case "PENDING_DELIVERY":
+      return 75;
+    case "DELIVERED":
+      return 100;
+    case "CANCELLED":
+      return 0;
+    default:
+      return 0;
+  }
+};
+
+export const datePlus = ({
+  date,
+  plusTo,
+}: {
+  date: Date;
+  plusTo: number;
+}): Date => {
+  const createdAt = new Date(date);
+  return addDays(createdAt, plusTo);
+};

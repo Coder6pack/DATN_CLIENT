@@ -1,8 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { Slide, Brand, Category, Product, User } from "@/types";
-import { mockSlides, mockBrands, mockCategories } from "@/lib/mockData";
 import HeroSlideshow from "@/components/hero-slideshow";
 import BrandsSection from "@/components/brands-section";
 import CategoriesCarousel from "@/components/categories-carousel";
@@ -22,15 +19,11 @@ export default function HomePage() {
   const { data: slideShows } = useListSlideShow();
   const { data: brands } = useListBrand();
   const { data: categories } = useListCategories();
-  const { data: products } = useListProducts({
-    page: 1,
-    limit: 100,
-  });
+  const { data: products } = useListProducts({ page: 1, limit: 10 });
 
   if (!slideShows || !brands || !categories || !products) {
     return;
   }
-
   // Event handlers
   const handleSearch = (query: string) => {
     console.log("Searching for:", query);

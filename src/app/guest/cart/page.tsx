@@ -63,8 +63,6 @@ export default function CartPage() {
     loadCart();
   }, []);
 
-  console.log("Cart Items in CartPage:", cartItems);
-
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
       {/* Hero Section */}

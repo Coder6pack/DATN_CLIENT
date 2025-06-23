@@ -37,10 +37,7 @@ export default function DropdownUserAvatar() {
         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
       >
         <Avatar className="h-8 w-8">
-          <AvatarImage
-            src={account?.avatar || "/placeholder.svg"}
-            alt={account?.name}
-          />
+          <AvatarImage src={account?.avatar || ""} alt={account?.name} />
           <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm">
             {account?.name.charAt(0)}
           </AvatarFallback>
@@ -79,7 +76,7 @@ export default function DropdownUserAvatar() {
           {/* Menu Items */}
           <div className="py-2">
             <Link
-              href="/profile"
+              href="/guest/profile"
               className="flex items-center px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
               onClick={() => setIsUserMenuOpen(false)}
             >
@@ -87,7 +84,7 @@ export default function DropdownUserAvatar() {
               Hồ sơ cá nhân
             </Link>
             <Link
-              href="/orders"
+              href="/guest/orders"
               className="flex items-center px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
               onClick={() => setIsUserMenuOpen(false)}
             >
@@ -95,15 +92,7 @@ export default function DropdownUserAvatar() {
               Đơn hàng của tôi
             </Link>
             <Link
-              href="#"
-              className="flex items-center px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-              onClick={() => setIsUserMenuOpen(false)}
-            >
-              <Heart className="h-4 w-4 mr-3" />
-              Sản phẩm yêu thích
-            </Link>
-            <Link
-              href="#"
+              href={"/guest/profile"}
               className="flex items-center px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
               onClick={() => setIsUserMenuOpen(false)}
             >

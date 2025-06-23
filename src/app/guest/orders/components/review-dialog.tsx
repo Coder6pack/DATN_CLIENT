@@ -158,7 +158,7 @@ export default function ReviewDialog({
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4 mb-6">
                       <Image
-                        src={item.image || "/placeholder.svg"}
+                        src={item.image}
                         alt={item.name}
                         width={80}
                         height={80}

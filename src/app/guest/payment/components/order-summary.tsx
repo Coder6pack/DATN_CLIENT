@@ -16,45 +16,81 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-
-interface CartItem {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  quantity: number;
-  size: string;
-  color: string;
-}
+import PaymentDialog from "./paymment-dialog";
+import { useState } from "react";
+import { useListCart } from "@/app/queries/useCart";
+import { generateQrCode, handleHttpErrorApi, parseVariants } from "@/lib/utils";
+import { useAddOrderMutation } from "@/app/queries/useOrder";
+import { CreateOrderBodyType } from "@/schemaValidations/order.model";
+import { useRouter } from "next/navigation";
 
 interface OrderSummaryProps {
-  cartItems: CartItem[];
   paymentMethod: string;
   processing: boolean;
-  onSubmit: () => void;
   isFormValid: boolean;
+  receiver: {
+    name: string;
+    phone: string;
+    address: string;
+  };
 }
 
 export default function OrderSummary({
-  cartItems,
   paymentMethod,
   processing,
-  onSubmit,
   isFormValid,
+  receiver,
 }: OrderSummaryProps) {
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentId, setPaymentId] = useState<number>(0);
+  const [qrCode, setQrCode] = useState<string>("");
+  const router = useRouter();
+  const { data } = useListCart({ page: 1, limit: 100 });
+  const createOrderMutation = useAddOrderMutation();
+  if (!data) {
+    return;
+  }
+  const listCart =
+    data.payload.data.length === 0 ? [] : data.payload.data[0].cartItems;
+  const getCartItems = listCart.map((item) => item.id);
+
+  const subtotal = listCart.reduce(
+    (sum, item) => sum + item.sku.price * item.quantity,
     0
   );
   const shipping = 0; // Free shipping
-  //   const discount = paymentMethod === "online" ? Math.round(subtotal * 0.02) : 0;
-  const total = subtotal + shipping; //- discount;
-
+  const discount = 0;
+  const total = subtotal + shipping - discount;
+  const handlePaymentSuccess = () => {
+    router.push("/guest/orders");
+  };
+  const onSubmit = async () => {
+    if (createOrderMutation.isPending) return;
+    try {
+      const body: CreateOrderBodyType = [
+        {
+          receiver,
+          cartItemIds: getCartItems,
+        },
+      ];
+      const result = await createOrderMutation.mutateAsync(body);
+      console.log(result);
+      if (result) {
+        setPaymentId(result.payload.paymentId);
+        setQrCode(generateQrCode({ total, paymentId }));
+        setShowPaymentDialog(true);
+      }
+    } catch (error) {
+      handleHttpErrorApi({
+        error,
+      });
+    }
+  };
   return (
     <div className="space-y-8">
       {/* Order Items */}
-      <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 pb-4">
+      <Card className="border-0 shadow-xl rounded-3xl overflow-hidden transition-colors duration-300">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 pb-4">
           <CardTitle className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center">
               <Gift className="h-5 w-5 text-white" />
@@ -64,15 +100,15 @@ export default function OrderSummary({
         </CardHeader>
         <CardContent className="p-6">
           <div className="space-y-4">
-            {cartItems.map((item) => (
+            {listCart.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl"
+                className="flex items-center space-x-4 p-4 bg-muted/50 rounded-2xl transition-colors duration-300"
               >
                 <div className="relative">
                   <Image
-                    src={item.image || "/placeholder.svg"}
-                    alt={item.name}
+                    src={item.sku.image}
+                    alt={item.sku.product.name}
                     width={60}
                     height={60}
                     className="rounded-xl object-cover"
@@ -83,16 +119,24 @@ export default function OrderSummary({
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-sm truncate">
-                    {item.name}
+                    {item.sku.product.name}
                   </h4>
-                  <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
-                    <span>Size: {item.size}</span>
-                    <span>•</span>
-                    <span>{item.color}</span>
-                  </div>
+                  {parseVariants({
+                    value: item.sku.value,
+                    product: { variants: item.sku.product.variants },
+                  }).map((variant) => (
+                    <div
+                      key={variant.name}
+                      className="flex items-center space-x-2 text-xs text-muted-foreground mt-1"
+                    >
+                      <span>{variant.name}</span>
+                      <span>•</span>
+                      <span>{variant.value}</span>
+                    </div>
+                  ))}
                 </div>
                 <span className="font-bold text-primary">
-                  {item.price.toLocaleString()}₫
+                  {item.sku.price.toLocaleString()}₫
                 </span>
               </div>
             ))}
@@ -101,8 +145,8 @@ export default function OrderSummary({
       </Card>
 
       {/* Price Summary */}
-      <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-blue-50 pb-4">
+      <Card className="border-0 shadow-xl rounded-3xl overflow-hidden transition-colors duration-300">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-blue-50 dark:from-primary/20 dark:to-blue-950 pb-4">
           <CardTitle className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
               <CreditCard className="h-5 w-5 text-white" />
@@ -124,34 +168,34 @@ export default function OrderSummary({
               <span className="font-semibold text-green-600">Miễn phí</span>
             </div>
 
-            {/* {paymentMethod === "online" && (
-              <div className="flex justify-between text-green-600 bg-green-50 p-3 rounded-xl">
+            {paymentMethod === "online" && (
+              <div className="flex justify-between text-green-600 bg-green-50 dark:bg-green-950 p-3 rounded-xl transition-colors duration-300">
                 <span className="font-medium">Giảm giá thanh toán online</span>
                 <span className="font-bold">-{discount.toLocaleString()}₫</span>
               </div>
-            )} */}
+            )}
           </div>
 
           <Separator className="my-4" />
 
-          <div className="flex justify-between text-2xl font-bold bg-gradient-to-r from-primary/10 to-blue-50 p-4 rounded-2xl">
+          <div className="flex justify-between text-2xl font-bold bg-gradient-to-r from-primary/10 to-blue-50 dark:from-primary/20 dark:to-blue-950 p-4 rounded-2xl transition-colors duration-300">
             <span>Tổng cộng</span>
             <span className="text-primary">{total.toLocaleString()}₫</span>
           </div>
 
           {/* Estimated Delivery */}
-          <div className="p-4 bg-blue-50 rounded-2xl border border-blue-200">
+          <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-2xl border border-blue-200 dark:border-blue-800 transition-colors duration-300">
             <div className="flex items-center space-x-3 mb-2">
               <Truck className="h-5 w-5 text-blue-600" />
-              <span className="font-semibold text-blue-800">
+              <span className="font-semibold text-blue-800 dark:text-blue-200">
                 Thời gian giao hàng
               </span>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-blue-600">
+            <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-300">
               <Calendar className="h-4 w-4" />
               <span>Dự kiến: 2-3 ngày làm việc</span>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-blue-600 mt-1">
+            <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-300 mt-1">
               <Clock className="h-4 w-4" />
               <span>Giao hàng: 8:00 - 18:00</span>
             </div>
@@ -160,7 +204,7 @@ export default function OrderSummary({
           {/* Place Order Button */}
           <Button
             size="lg"
-            className="w-full text-lg font-bold py-6 rounded-2xl bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg"
+            className="w-full text-lg font-bold py-6 rounded-2xl bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg transition-all duration-300"
             onClick={onSubmit}
             disabled={processing || !isFormValid}
           >
@@ -198,6 +242,15 @@ export default function OrderSummary({
           </div>
         </CardContent>
       </Card>
+      {/* Payment Dialog */}
+      <PaymentDialog
+        qrCode={qrCode}
+        paymentId={paymentId}
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        totalAmount={total}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }

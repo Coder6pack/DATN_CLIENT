@@ -87,13 +87,79 @@
 //   return null;
 // }
 
+// "use client";
+
+// import { checkAndRefreshToken } from "@/lib/utils";
+// import { usePathname, useRouter } from "next/navigation";
+// import { useEffect } from "react";
+
+// // Những page sau sẽ không check refresh token
+// const UNAUTHENTICATED_PATH: (string | RegExp)[] = [
+//   "/login",
+//   "/logout",
+//   "/refresh-token",
+//   "/register",
+//   "/forgot-password",
+//   "/products",
+//   /^\/product\/[^/]+/,
+// ];
+
+// // Hàm kiểm tra xem pathname có nằm trong UNAUTHENTICATED_PATH không
+// const isUnAuthenticatedPath = (
+//   pathname: string,
+//   paths: (string | RegExp)[]
+// ): boolean => {
+//   return paths.some((path) =>
+//     typeof path === "string" ? pathname === path : path.test(pathname)
+//   );
+// };
+
+// export default function RefreshToken() {
+//   const pathname = usePathname();
+//   const router = useRouter();
+
+//   useEffect(() => {
+//     // Nếu pathname nằm trong UNAUTHENTICATED_PATH, không chạy checkAndRefreshToken
+//     if (isUnAuthenticatedPath(pathname, UNAUTHENTICATED_PATH)) return;
+
+//     let interval: NodeJS.Timeout | null = null;
+
+//     // Gọi lần đầu tiên
+//     checkAndRefreshToken({
+//       onError: () => {
+//         if (interval) clearInterval(interval);
+//         router.push("/login");
+//       },
+//     });
+
+//     // Thiết lập interval để kiểm tra định kỳ
+//     const TIMEOUT = 8 * 1000 * 60 * 60; // 8 giờ
+//     interval = setInterval(
+//       () =>
+//         checkAndRefreshToken({
+//           onError: () => {
+//             if (interval) clearInterval(interval);
+//             router.push("/login");
+//           },
+//         }),
+//       TIMEOUT
+//     );
+
+//     // Cleanup khi component unmount
+//     return () => {
+//       if (interval) clearInterval(interval);
+//     };
+//   }, [pathname, router]);
+
+//   return null;
+// }
+
 "use client";
 
 import { checkAndRefreshToken } from "@/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-// Những page sau sẽ không check refresh token
 const UNAUTHENTICATED_PATH: (string | RegExp)[] = [
   "/login",
   "/logout",
@@ -102,11 +168,9 @@ const UNAUTHENTICATED_PATH: (string | RegExp)[] = [
   "/forgot-password",
   "/",
   "/products",
-  /^\/product\/[^/]+$/, // RegExp để khớp /product/2, /product/abc, v.v.
-  "/cart",
+  /^\/product\/[^/]+/,
 ];
 
-// Hàm kiểm tra xem pathname có nằm trong UNAUTHENTICATED_PATH không
 const isUnAuthenticatedPath = (
   pathname: string,
   paths: (string | RegExp)[]
@@ -121,33 +185,43 @@ export default function RefreshToken() {
   const router = useRouter();
 
   useEffect(() => {
-    // Nếu pathname nằm trong UNAUTHENTICATED_PATH, không chạy checkAndRefreshToken
-    if (isUnAuthenticatedPath(pathname, UNAUTHENTICATED_PATH)) return;
+    console.log(`RefreshToken: Checking path=${pathname}`);
+    if (isUnAuthenticatedPath(pathname, UNAUTHENTICATED_PATH)) {
+      console.log(`RefreshToken: Skipping token check for ${pathname}`);
+      return;
+    }
 
     let interval: NodeJS.Timeout | null = null;
 
-    // Gọi lần đầu tiên
-    checkAndRefreshToken({
-      onError: () => {
-        if (interval) clearInterval(interval);
-        router.push("/login");
-      },
-    });
-
-    // Thiết lập interval để kiểm tra định kỳ
-    const TIMEOUT = 8 * 1000 * 60 * 60; // 8 giờ
-    interval = setInterval(
-      () =>
-        checkAndRefreshToken({
+    const refresh = async () => {
+      try {
+        console.log("RefreshToken: Calling checkAndRefreshToken");
+        await checkAndRefreshToken({
           onError: () => {
+            console.log(
+              "RefreshToken: Error refreshing token, redirecting to /login"
+            );
             if (interval) clearInterval(interval);
+            // Xóa token khỏi localStorage nếu có
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
             router.push("/login");
           },
-        }),
-      TIMEOUT
-    );
+        });
+      } catch (error) {
+        console.error("RefreshToken: Error refreshing token:", error);
+        if (interval) clearInterval(interval);
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        router.push("/login");
+      }
+    };
 
-    // Cleanup khi component unmount
+    refresh();
+
+    const TIMEOUT = 5 * 60 * 1000; // 5 phút
+    interval = setInterval(refresh, TIMEOUT);
+
     return () => {
       if (interval) clearInterval(interval);
     };

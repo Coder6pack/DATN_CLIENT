@@ -1,6 +1,6 @@
 // "use client";
 
-// import { useState, useEffect } from "react";
+// import { useState, useEffect, useMemo } from "react";
 // import { Filter, Grid3X3, List, X, ArrowUpDown } from "lucide-react";
 // import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
@@ -18,64 +18,176 @@
 //   SheetTitle,
 //   SheetTrigger,
 // } from "@/components/ui/sheet";
-// import type { Product } from "@/types";
-// import { mockAllProducts } from "@/lib/mockData";
-// import ProductFilters from "./product-filter";
-// import ProductCard from "./product-card";
-// import { useListProducts } from "@/app/queries/useProduct";
 // import { ProductType } from "@/shared/models/shared-product.model";
+// import { useFilterProducts } from "@/app/queries/useProduct";
+// import { useListCategories } from "@/app/queries/useCategory";
+// import ProductFilter from "./product-filter";
+// import { useListBrand } from "@/app/queries/useBrand";
+// import { GetProductsQueryType } from "@/schemaValidations/product.model";
+// import ProductCard from "./product-card";
 
 // const sortOptions = [
 //   { value: "newest", label: "Mới nhất" },
 //   { value: "price-low", label: "Giá thấp đến cao" },
 //   { value: "price-high", label: "Giá cao đến thấp" },
 //   { value: "rating", label: "Đánh giá cao nhất" },
-//   { value: "popular", label: "Phổ biến nhất" },
 // ];
 
+// function buildQueryString(params: GetProductsQueryType): string {
+//   const queryParts: string[] = [];
+//   Object.entries(params).forEach(([key, value]) => {
+//     if (value === undefined) return;
+//     if (Array.isArray(value)) {
+//       if (value.length > 0) {
+//         queryParts.push(`${key}=${encodeURIComponent(value.join(","))}`);
+//       }
+//     } else if (value !== "") {
+//       queryParts.push(`${key}=${encodeURIComponent(value)}`);
+//     } else if (typeof value === "boolean" && value) {
+//       queryParts.push(`${key}=true`);
+//     }
+//   });
+//   return queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+// }
+
 // export default function ProductsPage() {
-//   const [products, setProducts] = useState<Product[]>([]);
-//   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-//   const [loading, setLoading] = useState(true);
+//   const [page, setPage] = useState(1);
+//   const [allProducts, setAllProducts] = useState<ProductType[]>([]);
 //   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
 //   // Filter states
 //   const [searchQuery, setSearchQuery] = useState("");
 //   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
 //   const [selectedBrand, setSelectedBrand] = useState("Tất cả");
-//   const [selectedColors, setSelectedColors] = useState<string[]>([]);
 //   const [priceRange, setPriceRange] = useState([0, 3000000]);
 //   const [sortBy, setSortBy] = useState("newest");
 //   const [showOnSale, setShowOnSale] = useState(false);
 //   const [minRating, setMinRating] = useState(0);
 
-//   const { data: listProduct, isLoading } = useListProducts({
-//     page: 1,
-//     limit: 10,
-//   });
-//   if (!listProduct) {
-//     return;
-//   }
-//   const getProducts = listProduct.payload.data;
+//   // Fetch categories and brands
+//   const { data: cateList } = useListCategories();
+//   const { data: brandList } = useListBrand();
+
+//   // Map sortBy to API params
+//   const getSortParams = () => {
+//     switch (sortBy) {
+//       case "price-low":
+//         return { sortBy: "price" as const, orderBy: "asc" as const };
+//       case "price-high":
+//         return { sortBy: "price" as const, orderBy: "desc" as const };
+//       // case "rating":
+//       //   return { sortBy: "rating" as const, orderBy: "desc" as const };
+//       case "newest":
+//       default:
+//         return { sortBy: "createdAt" as const, orderBy: "desc" as const };
+//     }
+//   };
+
+//   // Get category ID
+//   const selectedCategoryId = useMemo(() => {
+//     if (selectedCategory === "Tất cả" || !cateList?.payload.data)
+//       return undefined;
+//     const category = cateList.payload.data.find(
+//       (cat) => cat.name === selectedCategory
+//     );
+//     return category ? [category.id] : undefined;
+//   }, [selectedCategory, cateList]);
+
+//   // Build params for API
+//   const params: GetProductsQueryType = {
+//     page,
+//     limit: 9,
+//     ...getSortParams(),
+//     name: searchQuery || undefined,
+//     brandIds: selectedBrand !== "Tất cả" ? [Number(selectedBrand)] : undefined,
+//     categories: selectedCategoryId,
+//     minPrice: priceRange[0] || undefined,
+//     maxPrice: priceRange[1] || undefined,
+//   };
+
+//   // Fetch products with filters
+//   const {
+//     data: listProduct,
+//     isLoading,
+//     isFetching,
+//   } = useFilterProducts(params);
+
+//   // Update products
+//   useEffect(() => {
+//     if (listProduct?.payload.data) {
+//       setAllProducts((prev) => {
+//         const newProducts = listProduct.payload.data.filter(
+//           (newProduct) => !prev.some((p) => p.id === newProduct.id)
+//         );
+//         return [...prev, ...newProducts];
+//       });
+//     }
+//   }, [listProduct]);
+
+//   const totalPages = listProduct?.payload.totalPages ?? 0;
+//   const hasMore = page < totalPages;
+
+//   // Reset page and products when filters change
+//   useEffect(() => {
+//     setPage(1);
+//     setAllProducts([]);
+//   }, [
+//     searchQuery,
+//     selectedCategory,
+//     selectedBrand,
+//     priceRange,
+//     sortBy,
+//     showOnSale,
+//     minRating,
+//   ]);
 
 //   const clearFilters = () => {
 //     setSearchQuery("");
 //     setSelectedCategory("Tất cả");
 //     setSelectedBrand("Tất cả");
-//     setSelectedColors([]);
 //     setPriceRange([0, 3000000]);
 //     setSortBy("newest");
 //     setShowOnSale(false);
 //     setMinRating(0);
-//   };
-
-//   const handleAddToCart = (product: ProductType) => {
-//     console.log("Add to cart:", product);
+//     setAllProducts([]);
+//     setPage(1);
 //   };
 
 //   const handleToggleFavorite = (product: ProductType) => {
 //     console.log("Toggle favorite:", product);
 //   };
+
+//   const handleLoadMore = () => {
+//     if (hasMore && !isFetching) {
+//       setPage((prev) => prev + 1);
+//     }
+//   };
+
+//   // Client-side sorting (optional, since API handles sorting)
+//   const sortedProducts = useMemo(() => {
+//     return [...allProducts].sort((a, b) => {
+//       switch (sortBy) {
+//         case "newest":
+//           return (
+//             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+//           );
+//         case "price-low":
+//           return a.virtualPrice - b.virtualPrice;
+//         case "price-high":
+//           return b.virtualPrice - a.virtualPrice;
+//         // case "rating":
+//         //   return (b.rating || 0) - (a.rating || 0);
+//         default:
+//           return 0;
+//       }
+//     });
+//   }, [allProducts, sortBy]);
+
+//   // Update URL with query string
+//   useEffect(() => {
+//     const queryString = buildQueryString(params);
+//     window.history.pushState({}, "", `/products${queryString}`);
+//   }, [params]);
 
 //   return (
 //     <div className="min-h-screen bg-background">
@@ -94,15 +206,15 @@
 //         <div className="flex flex-col lg:flex-row gap-8">
 //           {/* Desktop Filters Sidebar */}
 //           <div className="hidden lg:block w-80 flex-shrink-0">
-//             <ProductFilters
+//             <ProductFilter
+//               searchQuery={searchQuery}
+//               setSearchQuery={setSearchQuery}
 //               selectedCategory={selectedCategory}
 //               setSelectedCategory={setSelectedCategory}
 //               selectedBrand={selectedBrand}
 //               setSelectedBrand={setSelectedBrand}
 //               priceRange={priceRange}
 //               setPriceRange={setPriceRange}
-//               selectedColors={selectedColors}
-//               setSelectedColors={setSelectedColors}
 //               minRating={minRating}
 //               setMinRating={setMinRating}
 //               showOnSale={showOnSale}
@@ -116,7 +228,6 @@
 //             {/* Toolbar */}
 //             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
 //               <div className="flex items-center space-x-4">
-//                 {/* Mobile Filter Button */}
 //                 <Sheet>
 //                   <SheetTrigger asChild>
 //                     <Button variant="outline" className="lg:hidden">
@@ -129,15 +240,15 @@
 //                       <SheetTitle>Bộ lọc sản phẩm</SheetTitle>
 //                     </SheetHeader>
 //                     <div className="mt-6">
-//                       <ProductFilters
+//                       <ProductFilter
+//                         searchQuery={searchQuery}
+//                         setSearchQuery={setSearchQuery}
 //                         selectedCategory={selectedCategory}
 //                         setSelectedCategory={setSelectedCategory}
 //                         selectedBrand={selectedBrand}
 //                         setSelectedBrand={setSelectedBrand}
 //                         priceRange={priceRange}
 //                         setPriceRange={setPriceRange}
-//                         selectedColors={selectedColors}
-//                         setSelectedColors={setSelectedColors}
 //                         minRating={minRating}
 //                         setMinRating={setMinRating}
 //                         showOnSale={showOnSale}
@@ -150,14 +261,13 @@
 
 //                 <div className="text-muted-foreground">
 //                   <span className="font-semibold text-foreground">
-//                     {getProducts.length}
+//                     {sortedProducts.length}
 //                   </span>{" "}
 //                   sản phẩm
 //                 </div>
 //               </div>
 
 //               <div className="flex items-center space-x-4">
-//                 {/* Sort */}
 //                 <Select value={sortBy} onValueChange={setSortBy}>
 //                   <SelectTrigger className="w-48">
 //                     <ArrowUpDown className="h-4 w-4 mr-2" />
@@ -172,7 +282,6 @@
 //                   </SelectContent>
 //                 </Select>
 
-//                 {/* View Mode */}
 //                 <div className="flex border border-muted rounded-lg p-1">
 //                   <Button
 //                     variant={viewMode === "grid" ? "default" : "ghost"}
@@ -211,7 +320,9 @@
 //                 )}
 //                 {selectedBrand !== "Tất cả" && (
 //                   <Badge variant="secondary" className="px-3 py-1">
-//                     {selectedBrand}
+//                     {brandList?.payload.data.find(
+//                       (brand) => brand.id.toString() === selectedBrand
+//                     )?.name || selectedBrand}
 //                     <button
 //                       onClick={() => setSelectedBrand("Tất cả")}
 //                       className="ml-2 hover:text-destructive"
@@ -246,7 +357,7 @@
 //             )}
 
 //             {/* Products Grid/List */}
-//             {isLoading ? (
+//             {isLoading && page === 1 ? (
 //               <div
 //                 className={`grid gap-6 ${
 //                   viewMode === "grid"
@@ -268,7 +379,7 @@
 //                   </div>
 //                 ))}
 //               </div>
-//             ) : getProducts.length === 0 ? (
+//             ) : sortedProducts.length === 0 ? (
 //               <div className="text-center py-20">
 //                 <div className="text-6xl mb-4">🔍</div>
 //                 <h3 className="text-2xl font-bold mb-2">
@@ -287,12 +398,11 @@
 //                     : "grid-cols-1"
 //                 }`}
 //               >
-//                 {getProducts.map((product) => (
+//                 {sortedProducts.map((product) => (
 //                   <ProductCard
 //                     key={product.id}
 //                     product={product}
 //                     viewMode={viewMode}
-//                     onAddToCart={handleAddToCart}
 //                     onToggleFavorite={handleToggleFavorite}
 //                   />
 //                 ))}
@@ -300,10 +410,15 @@
 //             )}
 
 //             {/* Load More */}
-//             {getProducts.length > 0 && (
+//             {sortedProducts.length > 0 && hasMore && (
 //               <div className="text-center mt-12">
-//                 <Button size="lg" variant="outline">
-//                   Xem thêm sản phẩm
+//                 <Button
+//                   size="lg"
+//                   variant="outline"
+//                   onClick={handleLoadMore}
+//                   disabled={isFetching}
+//                 >
+//                   {isFetching ? "Đang tải..." : "Xem thêm sản phẩm"}
 //                 </Button>
 //               </div>
 //             )}
@@ -315,7 +430,7 @@
 // }
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Filter, Grid3X3, List, X, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -334,18 +449,34 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ProductType } from "@/shared/models/shared-product.model";
-import { useGetProduct, useListProducts } from "@/app/queries/useProduct";
+import { useFilterProducts } from "@/app/queries/useProduct";
+import { useListCategories } from "@/app/queries/useCategory";
 import ProductFilters from "./product-filter";
 import ProductCard from "./product-card";
-import { useAppContext } from "@/components/app-provider";
+import { GetProductsQueryType } from "@/schemaValidations/product.model";
+import { useListBrand } from "@/app/queries/useBrand";
 
 const sortOptions = [
   { value: "newest", label: "Mới nhất" },
   { value: "price-low", label: "Giá thấp đến cao" },
   { value: "price-high", label: "Giá cao đến thấp" },
   { value: "rating", label: "Đánh giá cao nhất" },
-  { value: "popular", label: "Phổ biến nhất" },
 ];
+
+function buildQueryString(params: GetProductsQueryType): string {
+  const queryParts: string[] = [];
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined) return;
+    if (Array.isArray(value)) {
+      if (value.length > 0) {
+        queryParts.push(`${key}=${encodeURIComponent(value.join(","))}`);
+      }
+    } else if (value !== "") {
+      queryParts.push(`${key}=${encodeURIComponent(value)}`);
+    }
+  });
+  return queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+}
 
 export default function ProductsPage() {
   const [page, setPage] = useState(1);
@@ -356,20 +487,58 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [selectedBrand, setSelectedBrand] = useState("Tất cả");
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 3000000]);
   const [sortBy, setSortBy] = useState("newest");
   const [showOnSale, setShowOnSale] = useState(false);
   const [minRating, setMinRating] = useState(0);
 
+  // Fetch categories and brands
+  const { data: cateList } = useListCategories();
+  const { data: brandList } = useListBrand();
+
+  // Map sortBy to API params
+  const getSortParams = () => {
+    switch (sortBy) {
+      case "price-low":
+        return { sortBy: "price" as const, orderBy: "asc" as const };
+      case "price-high":
+        return { sortBy: "price" as const, orderBy: "desc" as const };
+      case "newest":
+      default:
+        return { sortBy: "createdAt" as const, orderBy: "desc" as const };
+    }
+  };
+
+  // Get category ID
+  const selectedCategoryId = useMemo(() => {
+    if (selectedCategory === "Tất cả" || !cateList?.payload.data)
+      return undefined;
+    const category = cateList.payload.data.find(
+      (cat) => cat.name === selectedCategory
+    );
+    return category ? [category.id] : undefined;
+  }, [selectedCategory, cateList]);
+
+  // Build params for API
+  const params: GetProductsQueryType = {
+    page,
+    limit: 9,
+    ...getSortParams(),
+    name: searchQuery || undefined,
+    brandIds: selectedBrand !== "Tất cả" ? [Number(selectedBrand)] : undefined,
+    categories: selectedCategory !== "Tất cả" ? selectedCategoryId : undefined,
+    minPrice: priceRange[0] || undefined,
+    maxPrice: priceRange[1] || undefined,
+  };
+
+  // Fetch products with filters
   const {
     data: listProduct,
     isLoading,
     isFetching,
-  } = useListProducts({
-    page,
-    limit: 10,
-  });
+  } = useFilterProducts(params);
+
+  // Update products
   useEffect(() => {
     if (listProduct?.payload.data) {
       setAllProducts((prev) => {
@@ -384,11 +553,24 @@ export default function ProductsPage() {
   const totalPages = listProduct?.payload.totalPages ?? 0;
   const hasMore = page < totalPages;
 
+  // Reset page and products when filters change
+  useEffect(() => {
+    setPage(1);
+    setAllProducts([]);
+  }, [
+    searchQuery,
+    selectedCategory,
+    selectedBrand,
+    priceRange,
+    sortBy,
+    showOnSale,
+    minRating,
+  ]);
+
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCategory("Tất cả");
     setSelectedBrand("Tất cả");
-    setSelectedColors([]);
     setPriceRange([0, 3000000]);
     setSortBy("newest");
     setShowOnSale(false);
@@ -407,47 +589,31 @@ export default function ProductsPage() {
     }
   };
 
-  // Lọc và sắp xếp sản phẩm (như code trước)
-  const filteredProducts = allProducts.filter((product) => {
-    if (selectedBrand !== "Tất cả" && product.brandId) {
-      // Cần ánh xạ brandId sang tên brand
-      if (product.brandId.toString() !== selectedBrand) return false;
-    }
-    if (
-      product.virtualPrice < priceRange[0] ||
-      product.virtualPrice > priceRange[1]
-    )
-      return false;
-    if (selectedColors.length > 0) {
-      const productColors =
-        product.variants?.find((v) => v.value === "color")?.options || [];
-      if (!selectedColors.some((color) => productColors.includes(color)))
-        return false;
-    }
-    // if (showOnSale && product.basePrice === product.virtualPrice) return false;
-    // if (minRating > 0 && (!product.rating || product.rating < minRating))
-    //   return false;
-    return true;
-  });
+  // Client-side sorting
+  const sortedProducts = useMemo(() => {
+    return [...allProducts].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        case "price-low":
+          return a.virtualPrice - b.virtualPrice;
+        case "price-high":
+          return b.virtualPrice - a.virtualPrice;
+        // case "rating":
+        //   return (b.rating || 0) - (a.rating || 0);
+        default:
+          return 0;
+      }
+    });
+  }, [allProducts, sortBy]);
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case "newest":
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-      case "price-low":
-        return a.virtualPrice - b.virtualPrice;
-      case "price-high":
-        return b.virtualPrice - a.virtualPrice;
-      // case "rating":
-      //   return (b.rating || 0) - (a.rating || 0);
-      // case "popular":
-      //   return (b.popularity || 0) - (a.popularity || 0);
-      default:
-        return 0;
-    }
-  });
+  // Update URL with query string
+  useEffect(() => {
+    const queryString = buildQueryString(params);
+    window.history.pushState({}, "", `/products${queryString}`);
+  }, [params]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -467,14 +633,14 @@ export default function ProductsPage() {
           {/* Desktop Filters Sidebar */}
           <div className="hidden lg:block w-80 flex-shrink-0">
             <ProductFilters
+              // searchQuery={searchQuery}
+              // setSearchQuery={setSearchQuery}
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
               selectedBrand={selectedBrand}
               setSelectedBrand={setSelectedBrand}
               priceRange={priceRange}
               setPriceRange={setPriceRange}
-              selectedColors={selectedColors}
-              setSelectedColors={setSelectedColors}
               minRating={minRating}
               setMinRating={setMinRating}
               showOnSale={showOnSale}
@@ -501,14 +667,14 @@ export default function ProductsPage() {
                     </SheetHeader>
                     <div className="mt-6">
                       <ProductFilters
+                        // searchQuery={searchQuery}
+                        // setSearchQuery={setSearchQuery}
                         selectedCategory={selectedCategory}
                         setSelectedCategory={setSelectedCategory}
                         selectedBrand={selectedBrand}
                         setSelectedBrand={setSelectedBrand}
                         priceRange={priceRange}
                         setPriceRange={setPriceRange}
-                        selectedColors={selectedColors}
-                        setSelectedColors={setSelectedColors}
                         minRating={minRating}
                         setMinRating={setMinRating}
                         showOnSale={showOnSale}
@@ -580,7 +746,9 @@ export default function ProductsPage() {
                 )}
                 {selectedBrand !== "Tất cả" && (
                   <Badge variant="secondary" className="px-3 py-1">
-                    {selectedBrand}
+                    {brandList?.payload.data.find(
+                      (brand) => brand.id.toString() === selectedBrand
+                    )?.name || selectedBrand}
                     <button
                       onClick={() => setSelectedBrand("Tất cả")}
                       className="ml-2 hover:text-destructive"

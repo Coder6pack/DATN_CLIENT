@@ -10,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useListBrand } from "@/app/queries/useBrand";
+import { useListCategories } from "@/app/queries/useCategory";
 
 interface ProductFiltersProps {
   selectedCategory: string;
@@ -18,47 +20,12 @@ interface ProductFiltersProps {
   setSelectedBrand: (brand: string) => void;
   priceRange: number[];
   setPriceRange: (range: number[]) => void;
-  selectedColors: string[];
-  setSelectedColors: (colors: string[]) => void;
   minRating: number;
   setMinRating: (rating: number) => void;
   showOnSale: boolean;
   setShowOnSale: (show: boolean) => void;
   onClearFilters: () => void;
 }
-
-const categories = [
-  "Tất cả",
-  "Áo Sơ Mi",
-  "Quần Jeans",
-  "Váy Đầm",
-  "Áo Khoác",
-  "Giày Dép",
-  "Phụ Kiện",
-  "Quần Tây",
-  "Áo Polo",
-];
-
-const brands = [
-  "Tất cả",
-  "FashionStore",
-  "Zara",
-  "H&M",
-  "Uniqlo",
-  "Nike",
-  "Adidas",
-];
-
-const colors = [
-  { name: "Đen", value: "#000000" },
-  { name: "Trắng", value: "#FFFFFF" },
-  { name: "Xanh Navy", value: "#1e3a8a" },
-  { name: "Xám", value: "#6b7280" },
-  { name: "Nâu", value: "#92400e" },
-  { name: "Hồng", value: "#ec4899" },
-  { name: "Xanh Lá", value: "#059669" },
-  { name: "Đỏ", value: "#dc2626" },
-];
 
 export default function ProductFilters({
   selectedCategory,
@@ -67,14 +34,19 @@ export default function ProductFilters({
   setSelectedBrand,
   priceRange,
   setPriceRange,
-  selectedColors,
-  setSelectedColors,
   minRating,
   setMinRating,
   showOnSale,
   setShowOnSale,
   onClearFilters,
 }: ProductFiltersProps) {
+  const { data: cateList } = useListCategories();
+  const { data: brandList } = useListBrand();
+  if (!brandList || !cateList) {
+    return;
+  }
+  const brands = brandList.payload.data;
+  const categories = cateList.payload.data;
   return (
     <Card className="sticky top-8 border-2 rounded-3xl">
       <CardContent className="p-6 max-h-[calc(100vh-6rem)] overflow-y-auto">
@@ -88,17 +60,27 @@ export default function ProductFilters({
           <div className="space-y-3">
             <h3 className="font-semibold text-lg">Danh mục</h3>
             <div className="space-y-2">
+              <button
+                className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 ${
+                  selectedCategory === "Tất cả"
+                    ? "bg-primary text-primary-foreground font-medium"
+                    : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                }`}
+                onClick={() => setSelectedCategory("Tất cả")}
+              >
+                Tất cả
+              </button>
               {categories.map((category) => (
                 <button
-                  key={category}
+                  key={category.id}
                   className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 ${
-                    selectedCategory === category
+                    selectedCategory === category.name
                       ? "bg-primary text-primary-foreground font-medium"
                       : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
                   }`}
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => setSelectedCategory(category.name)}
                 >
-                  {category}
+                  {category.name}
                 </button>
               ))}
             </div>
@@ -131,10 +113,7 @@ export default function ProductFilters({
                   placeholder="3000000"
                   value={priceRange[1]}
                   onChange={(e) =>
-                    setPriceRange([
-                      priceRange[0],
-                      Number(e.target.value) || 3000000,
-                    ])
+                    setPriceRange([priceRange[0], Number(e.target.value)])
                   }
                   className="w-full px-3 py-2 border border-muted rounded-lg focus:outline-none focus:border-primary transition-colors text-sm"
                 />
@@ -154,43 +133,14 @@ export default function ProductFilters({
                 <SelectValue placeholder="Chọn thương hiệu" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={"Tất cả"}>Tất cả</SelectItem>
                 {brands.map((brand) => (
-                  <SelectItem key={brand} value={brand}>
-                    {brand}
+                  <SelectItem key={brand.id} value={brand.id.toString()}>
+                    {brand.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          {/* Colors */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-lg">Màu sắc</h3>
-            <div className="grid grid-cols-4 gap-3">
-              {colors.map((color) => (
-                <button
-                  key={color.name}
-                  className={`relative w-12 h-12 rounded-full border-4 transition-all duration-300 ${
-                    selectedColors.includes(color.name)
-                      ? "border-primary scale-110 shadow-lg"
-                      : "border-muted hover:border-muted-foreground hover:scale-105"
-                  }`}
-                  style={{ backgroundColor: color.value }}
-                  onClick={() => {
-                    setSelectedColors(
-                      selectedColors.includes(color.name)
-                        ? selectedColors.filter((c) => c !== color.name)
-                        : [...selectedColors, color.name]
-                    );
-                  }}
-                  title={color.name}
-                >
-                  {selectedColors.includes(color.name) && (
-                    <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-lg" />
-                  )}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Rating */}

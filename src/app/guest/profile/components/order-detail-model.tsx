@@ -5,10 +5,6 @@ import React from "react";
 import Image from "next/image";
 import {
   Package,
-  Truck,
-  CheckCircle,
-  Clock,
-  AlertCircle,
   MapPin,
   Phone,
   CreditCard,
@@ -29,93 +25,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-
-interface OrderItem {
-  id: number;
-  name: string;
-  image: string;
-  price: string;
-  quantity: number;
-  size?: string;
-  color?: string;
-}
-
-interface Order {
-  id: string;
-  date: string;
-  status: "pending" | "confirmed" | "shipping" | "delivered" | "cancelled";
-  total: string;
-  items: OrderItem[];
-  shippingAddress: {
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-  };
-  paymentMethod: string;
-  trackingNumber?: string;
-  estimatedDelivery?: string;
-  notes?: string;
-}
+import { statusConfig } from "@/constants/order.constant";
+import { datePlus, getStatusProgress } from "@/lib/utils";
+import { useGetOrder } from "@/app/queries/useOrder";
 
 interface OrderDetailModalProps {
-  order: Order | null;
+  orderId: number;
   isOpen: boolean;
   onClose: () => void;
 }
 
-const statusConfig = {
-  pending: {
-    label: "Chờ xác nhận",
-    color: "bg-yellow-500",
-    icon: Clock,
-  },
-  confirmed: {
-    label: "Đã xác nhận",
-    color: "bg-blue-500",
-    icon: CheckCircle,
-  },
-  shipping: {
-    label: "Đang giao",
-    color: "bg-purple-500",
-    icon: Truck,
-  },
-  delivered: {
-    label: "Đã giao",
-    color: "bg-green-500",
-    icon: Package,
-  },
-  cancelled: {
-    label: "Đã hủy",
-    color: "bg-red-500",
-    icon: AlertCircle,
-  },
-};
-
-const getStatusProgress = (status: string) => {
-  switch (status) {
-    case "pending":
-      return 25;
-    case "confirmed":
-      return 50;
-    case "shipping":
-      return 75;
-    case "delivered":
-      return 100;
-    case "cancelled":
-      return 0;
-    default:
-      return 0;
-  }
-};
-
-export default function OrderDetailModal({
-  order,
+export default function OrderDetail({
+  orderId,
   isOpen,
   onClose,
 }: OrderDetailModalProps) {
-  if (!order) return null;
-
+  const { data } = useGetOrder({ id: orderId, enabled: Boolean(orderId) });
+  if (!data) {
+    return;
+  }
+  const order = data.payload;
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -123,11 +52,8 @@ export default function OrderDetailModal({
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Package className="h-5 w-5" />
-              <span>Chi tiết đơn hàng {order.id}</span>
+              <span>Chi tiết đơn hàng {`DH${order.paymentId}`}</span>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
 
@@ -152,7 +78,7 @@ export default function OrderDetailModal({
                     </h3>
                     <p className="text-muted-foreground">
                       Đặt hàng ngày{" "}
-                      {new Date(order.date).toLocaleDateString("vi-VN")}
+                      {new Date(order.createdAt).toLocaleDateString("vi-VN")}
                     </p>
                   </div>
                 </div>
@@ -172,29 +98,32 @@ export default function OrderDetailModal({
                 <div className="space-y-6">
                   {[
                     {
-                      status: "pending",
+                      status: "PENDING_PAYMENT",
                       label: "Đặt hàng thành công",
-                      time: order.date,
+                      time: order.createdAt,
                     },
                     {
-                      status: "confirmed",
+                      status: "PENDING_PICKUP",
                       label: "Xác nhận đơn hàng",
-                      time: order.status !== "pending" ? order.date : null,
+                      time:
+                        order.status !== "PENDING_PAYMENT"
+                          ? order.createdAt
+                          : null,
                     },
                     {
-                      status: "shipping",
+                      status: "PENDING_DELIVERY",
                       label: "Đang giao hàng",
-                      time: ["shipping", "delivered"].includes(order.status)
-                        ? order.date
+                      time: ["PENDING_PAYMENT", "PENDING_PICKUP"].includes(
+                        order.status
+                      )
+                        ? order.createdAt
                         : null,
                     },
                     {
-                      status: "delivered",
+                      status: "DELIVERED",
                       label: "Giao hàng thành công",
                       time:
-                        order.status === "delivered"
-                          ? order.estimatedDelivery
-                          : null,
+                        order.status === "DELIVERED" ? order.createdAt : null,
                     },
                   ].map((step, index) => {
                     const isActive = order.status === step.status;
@@ -256,22 +185,27 @@ export default function OrderDetailModal({
                     className="flex items-center space-x-4 p-4 border rounded-2xl"
                   >
                     <Image
-                      src={item.image || "/placeholder.svg"}
-                      alt={item.name}
+                      src={item.image}
+                      alt={item.productName}
                       width={80}
                       height={80}
                       className="rounded-lg object-cover"
                     />
                     <div className="flex-1">
-                      <h4 className="font-semibold">{item.name}</h4>
+                      <h4 className="font-semibold">{item.productName}</h4>
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                        {item.size && <span>Size: {item.size}</span>}
-                        {item.color && <span>Màu: {item.color}</span>}
+                        {item.skuValue.split("-").length > 1
+                          ? item.skuValue.split("-").map((val) => `${val} • `)
+                          : item.skuValue
+                              .split("-")
+                              .map((val) => `${val}`)}{" "}
                         <span>Số lượng: {item.quantity}</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-lg">{item.price}₫</p>
+                      <p className="font-semibold text-lg">
+                        {(item.skuPrice * item.quantity).toLocaleString()}₫
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -291,19 +225,16 @@ export default function OrderDetailModal({
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-semibold">
-                    {order.shippingAddress.name}
-                  </span>
+                  <span className="font-semibold">{order.receiver.name}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{order.shippingAddress.phone}</span>
+                  <span>{order.receiver.phone}</span>
                 </div>
                 <div className="flex items-start space-x-2">
                   <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <span className="text-muted-foreground">
-                    {order.shippingAddress.address},{" "}
-                    {order.shippingAddress.city}
+                    {order.receiver.address}
                   </span>
                 </div>
               </CardContent>
@@ -317,24 +248,16 @@ export default function OrderDetailModal({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="font-semibold">{order.paymentMethod}</p>
-                {order.trackingNumber && (
-                  <div className="flex items-center space-x-2">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      Mã vận đơn:{" "}
-                      <span className="font-mono">{order.trackingNumber}</span>
-                    </span>
-                  </div>
-                )}
-                {order.estimatedDelivery && (
+                <p className="font-semibold">Online</p>
+                {order.createdAt && (
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
                       Dự kiến giao:{" "}
-                      {new Date(order.estimatedDelivery).toLocaleDateString(
-                        "vi-VN"
-                      )}
+                      {datePlus({
+                        date: order.createdAt,
+                        plusTo: 3,
+                      }).toLocaleDateString("vi-VN")}
                     </span>
                   </div>
                 )}
@@ -342,7 +265,13 @@ export default function OrderDetailModal({
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span>Tạm tính:</span>
-                    <span>{order.total}₫</span>
+                    <span>
+                      {" "}
+                      {order.items
+                        .reduce((acc, item) => acc + item.skuPrice, 0)
+                        .toLocaleString()}
+                      ₫
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Phí vận chuyển:</span>
@@ -350,24 +279,17 @@ export default function OrderDetailModal({
                   </div>
                   <div className="flex justify-between font-semibold text-lg border-t pt-2">
                     <span>Tổng cộng:</span>
-                    <span className="text-primary">{order.total}₫</span>
+                    <span className="text-primary">
+                      {order.items
+                        .reduce((acc, item) => acc + item.skuPrice, 0)
+                        .toLocaleString()}
+                      ₫
+                    </span>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-
-          {/* Notes */}
-          {order.notes && (
-            <Card className="border-0 shadow-lg rounded-2xl">
-              <CardHeader>
-                <CardTitle>Ghi chú</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{order.notes}</p>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Actions */}
           <div className="flex space-x-4 pt-4 border-t">
@@ -379,7 +301,7 @@ export default function OrderDetailModal({
               <MessageCircle className="h-4 w-4 mr-2" />
               Liên hệ hỗ trợ
             </Button>
-            {order.status === "delivered" && (
+            {order.status === "DELIVERED" && (
               <Button variant="outline" className="flex-1">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Mua lại

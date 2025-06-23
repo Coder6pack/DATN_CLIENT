@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 
 function Logout() {
-  const { mutateAsync } = useLogoutMutation();
+  const { mutateAsync, reset } = useLogoutMutation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setIsAuth } = useAppContext();

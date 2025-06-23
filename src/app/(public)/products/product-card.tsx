@@ -5,13 +5,10 @@ import { Star, Heart, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Product } from "@/types";
 import { ProductType } from "@/shared/models/shared-product.model";
-import { GetProductDetailResType } from "@/schemaValidations/product.model";
 import { useGetProduct } from "@/app/queries/useProduct";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
-import { useAppContext } from "@/components/app-provider";
 
 interface ProductCardProps {
   product: ProductType;
@@ -42,7 +39,7 @@ export default function ProductCard({
           }`}
         >
           <Image
-            src={product.images[0] || "/placeholder.svg"}
+            src={product.images[0]}
             alt={product.name}
             width={300}
             height={400}
@@ -87,20 +84,18 @@ export default function ProductCard({
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <Link href={`/product/${product.id}`}>
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-primary text-lg">
-                    {formatCurrency(product.basePrice)}₫
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-primary text-lg">
+                  {formatCurrency(product.basePrice)}₫
+                </span>
+                {formatCurrency(product.virtualPrice) && (
+                  <span className="text-sm text-muted-foreground line-through">
+                    {formatCurrency(product.virtualPrice)}₫
                   </span>
-                  {formatCurrency(product.virtualPrice) && (
-                    <span className="text-sm text-muted-foreground line-through">
-                      {formatCurrency(product.virtualPrice)}₫
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
-            </Link>
+            </div>
             <Button size="sm" className="rounded-xl">
               <ShoppingBag className="h-4 w-4 mr-1" />
               Mua ngay

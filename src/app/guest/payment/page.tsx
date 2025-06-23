@@ -18,51 +18,15 @@ interface CartItem {
   color: string;
 }
 
-const mockCartItems: CartItem[] = [
-  {
-    id: 1,
-    name: "Áo Sơ Mi Premium Luxury Collection",
-    image: "/placeholder.svg?height=80&width=80&text=Áo+Sơ+Mi",
-    price: 1299000,
-    quantity: 2,
-    size: "L",
-    color: "Trắng",
-  },
-  {
-    id: 2,
-    name: "Quần Jeans Skinny Fit",
-    image: "/placeholder.svg?height=80&width=80&text=Quần+Jeans",
-    price: 899000,
-    quantity: 1,
-    size: "32",
-    color: "Xanh đậm",
-  },
-  {
-    id: 4,
-    name: "Túi Xách Tote",
-    image: "/placeholder.svg?height=80&width=80&text=Túi+Xách",
-    price: 799000,
-    quantity: 1,
-    size: "One Size",
-    color: "Nâu",
-  },
-];
-
 export default function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState("online");
   const [onlineMethod, setOnlineMethod] = useState("card");
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
+  const [receiver, setReceiver] = useState({
+    name: "",
     phone: "",
     address: "",
-    city: "",
-    district: "",
-    ward: "",
-    notes: "",
-    saveInfo: false,
   });
 
   useEffect(() => {
@@ -75,19 +39,10 @@ export default function PaymentPage() {
   }, []);
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setReceiver((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async () => {
-    setProcessing(true);
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    setProcessing(false);
-    // Redirect to success page
-    window.location.href = "/payment/success";
-  };
-
-  const isFormValid =
-    formData.fullName && formData.phone && formData.address && formData.city;
+  const isFormValid = receiver.name && receiver.phone && receiver.address;
 
   if (loading) {
     return (
@@ -120,7 +75,6 @@ export default function PaymentPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
       {/* Hero Section */}
@@ -155,7 +109,7 @@ export default function PaymentPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             <ShippingForm
-              formData={formData}
+              receiver={receiver}
               onInputChange={handleInputChange}
             />
             <PaymentMethod
@@ -168,10 +122,9 @@ export default function PaymentPage() {
 
           {/* Order Summary */}
           <OrderSummary
-            cartItems={mockCartItems}
+            receiver={receiver}
             paymentMethod={paymentMethod}
             processing={processing}
-            onSubmit={handleSubmit}
             isFormValid={!!isFormValid}
           />
         </div>

@@ -2,11 +2,6 @@
 
 import Image from "next/image";
 import {
-  Package,
-  Truck,
-  CheckCircle,
-  Clock,
-  AlertCircle,
   MapPin,
   Phone,
   CreditCard,
@@ -16,85 +11,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useGetOrder } from "@/app/queries/useOrder";
+import { statusConfig } from "@/constants/order.constant";
+import { getStatusProgress } from "@/lib/utils";
 
-interface OrderItem {
-  id: number;
-  name: string;
-  image: string;
-  price: string;
-  quantity: number;
-  size?: string;
-  color?: string;
-}
-
-interface Order {
-  id: string;
-  date: string;
-  status: "pending" | "confirmed" | "shipping" | "delivered" | "cancelled";
-  total: string;
-  items: OrderItem[];
-  shippingAddress: {
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-  };
-  paymentMethod: string;
-  trackingNumber?: string;
-  estimatedDelivery?: string;
-  notes?: string;
-}
-
-interface OrderDetailProps {
-  order: Order;
-}
-
-const statusConfig = {
-  pending: {
-    label: "Chờ xác nhận",
-    color: "bg-yellow-500",
-    icon: Clock,
-  },
-  confirmed: {
-    label: "Đã xác nhận",
-    color: "bg-blue-500",
-    icon: CheckCircle,
-  },
-  shipping: {
-    label: "Đang giao",
-    color: "bg-purple-500",
-    icon: Truck,
-  },
-  delivered: {
-    label: "Đã giao",
-    color: "bg-green-500",
-    icon: Package,
-  },
-  cancelled: {
-    label: "Đã hủy",
-    color: "bg-red-500",
-    icon: AlertCircle,
-  },
-};
-
-const getStatusProgress = (status: string) => {
-  switch (status) {
-    case "pending":
-      return 25;
-    case "confirmed":
-      return 50;
-    case "shipping":
-      return 75;
-    case "delivered":
-      return 100;
-    case "cancelled":
-      return 0;
-    default:
-      return 0;
+export default function OrderDetail({ orderId }: { orderId: number }) {
+  const { data } = useGetOrder({ id: orderId, enabled: Boolean(orderId) });
+  if (!data) {
+    return <div>Loading order detail...</div>;
   }
-};
-
-export default function OrderDetail({ order }: OrderDetailProps) {
+  const order = data.payload;
   return (
     <div className="space-y-8">
       {/* Status Timeline */}
@@ -105,27 +31,29 @@ export default function OrderDetail({ order }: OrderDetailProps) {
           <div className="space-y-6">
             {[
               {
-                status: "pending",
+                status: "PENDING_PAYMENT",
                 label: "Đặt hàng thành công",
-                time: order.date,
+                time: order.createdAt,
               },
               {
-                status: "confirmed",
+                status: "PENDING_PICKUP",
                 label: "Xác nhận đơn hàng",
-                time: order.status !== "pending" ? order.date : null,
+                time:
+                  order.status !== "PENDING_PAYMENT" ? order.createdAt : null,
               },
               {
-                status: "shipping",
+                status: "PENDING_DELIVERY",
                 label: "Đang giao hàng",
-                time: ["shipping", "delivered"].includes(order.status)
-                  ? order.date
+                time: ["PENDING_PAYMENT", "PENDING_PICKUP"].includes(
+                  order.status
+                )
+                  ? order.createdAt
                   : null,
               },
               {
-                status: "delivered",
+                status: "DELIVERED",
                 label: "Giao hàng thành công",
-                time:
-                  order.status === "delivered" ? order.estimatedDelivery : null,
+                time: order.status === "DELIVERED" ? order.createdAt : null,
               },
             ].map((step, index) => {
               const isActive = order.status === step.status;
@@ -182,22 +110,25 @@ export default function OrderDetail({ order }: OrderDetailProps) {
               className="flex items-center space-x-4 p-4 border rounded-2xl"
             >
               <Image
-                src={item.image || "/placeholder.svg"}
-                alt={item.name}
+                src={item.image}
+                alt={item.productName}
                 width={80}
                 height={80}
                 className="rounded-lg object-cover"
               />
               <div className="flex-1">
-                <h4 className="font-semibold">{item.name}</h4>
+                <h4 className="font-semibold">{item.productName}</h4>
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                  {item.size && <span>Size: {item.size}</span>}
-                  {item.color && <span>Màu: {item.color}</span>}
+                  {item.skuValue.split("-").length > 1
+                    ? item.skuValue.split("-").map((val) => `${val} • `)
+                    : item.skuValue.split("-").map((val) => `${val}`)}{" "}
                   <span>Số lượng: {item.quantity}</span>
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-lg">{item.price}₫</p>
+                <p className="font-semibold text-lg">
+                  {(item.skuPrice * item.quantity).toLocaleString()}₫
+                </p>
               </div>
             </div>
           ))}
@@ -214,14 +145,12 @@ export default function OrderDetail({ order }: OrderDetailProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <p className="font-semibold">{order.shippingAddress.name}</p>
+            <p className="font-semibold">{order.receiver.name}</p>
             <p className="flex items-center space-x-2">
               <Phone className="h-4 w-4" />
-              <span>{order.shippingAddress.phone}</span>
+              <span>{order.receiver.phone}</span>
             </p>
-            <p className="text-muted-foreground">
-              {order.shippingAddress.address}, {order.shippingAddress.city}
-            </p>
+            <p className="text-muted-foreground">{order.receiver.address}</p>
           </CardContent>
         </Card>
 
@@ -233,11 +162,17 @@ export default function OrderDetail({ order }: OrderDetailProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <p className="font-semibold">{order.paymentMethod}</p>
+            <p className="font-semibold">Online</p>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
                 <span>Tạm tính:</span>
-                <span>{order.total}₫</span>
+                <span>
+                  {" "}
+                  {order.items
+                    .reduce((acc, item) => acc + item.skuPrice, 0)
+                    .toLocaleString()}
+                  ₫
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Phí vận chuyển:</span>
@@ -245,24 +180,17 @@ export default function OrderDetail({ order }: OrderDetailProps) {
               </div>
               <div className="flex justify-between font-semibold text-lg border-t pt-2">
                 <span>Tổng cộng:</span>
-                <span className="text-primary">{order.total}₫</span>
+                <span className="text-primary">
+                  {order.items
+                    .reduce((acc, item) => acc + item.skuPrice, 0)
+                    .toLocaleString()}
+                  ₫
+                </span>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Notes */}
-      {order.notes && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Ghi chú</h3>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-muted-foreground">{order.notes}</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {/* Actions */}
       <div className="flex space-x-4 pt-4 border-t">
@@ -274,7 +202,7 @@ export default function OrderDetail({ order }: OrderDetailProps) {
           <MessageCircle className="h-4 w-4 mr-2" />
           Liên hệ hỗ trợ
         </Button>
-        {order.status === "delivered" && (
+        {order.status === "DELIVERED" && (
           <Button variant="outline" className="flex-1">
             <RefreshCw className="h-4 w-4 mr-2" />
             Mua lại

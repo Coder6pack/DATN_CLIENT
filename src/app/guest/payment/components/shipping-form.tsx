@@ -8,22 +8,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ShippingFormProps {
-  formData: {
-    fullName: string;
-    email: string;
+  receiver: {
+    name: string;
     phone: string;
     address: string;
-    city: string;
-    district: string;
-    ward: string;
-    notes: string;
-    saveInfo: boolean;
   };
   onInputChange: (field: string, value: string | boolean) => void;
 }
 
 export default function ShippingForm({
-  formData,
+  receiver,
   onInputChange,
 }: ShippingFormProps) {
   return (
@@ -40,7 +34,7 @@ export default function ShippingForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label
-              htmlFor="fullName"
+              htmlFor="name"
               className="text-sm font-semibold text-gray-700"
             >
               Họ và tên *
@@ -48,10 +42,10 @@ export default function ShippingForm({
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                id="fullName"
+                id="name"
                 placeholder="Nhập họ và tên"
-                value={formData.fullName}
-                onChange={(e) => onInputChange("fullName", e.target.value)}
+                value={receiver.name}
+                onChange={(e) => onInputChange("name", e.target.value)}
                 className="pl-10 h-12 rounded-xl border-2 focus:border-primary"
                 required
               />
@@ -69,7 +63,7 @@ export default function ShippingForm({
               <Input
                 id="phone"
                 placeholder="Nhập số điện thoại"
-                value={formData.phone}
+                value={receiver.phone}
                 onChange={(e) => onInputChange("phone", e.target.value)}
                 className="pl-10 h-12 rounded-xl border-2 focus:border-primary"
                 required
@@ -88,7 +82,7 @@ export default function ShippingForm({
           <Input
             id="address"
             placeholder="Số nhà, tên đường"
-            value={formData.address}
+            value={receiver.address}
             onChange={(e) => onInputChange("address", e.target.value)}
             className="h-12 rounded-xl border-2 focus:border-primary"
             required

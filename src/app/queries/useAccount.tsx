@@ -6,6 +6,8 @@ export const useAccountMe = () => {
   return useQuery({
     queryKey: ["account-me"],
     queryFn: accountApiRequest.me,
+    gcTime: 0,
+    staleTime: 0,
   });
 };
 
