@@ -21,7 +21,26 @@ import { LoginBodySchema, LoginBodyType } from "@/schemaValidations/auth.model";
 import { useAppContext } from "@/components/app-provider";
 import { useEffect } from "react";
 import Link from "next/link";
+import envConfig from "@/config";
 
+const getOauthGoogleUrl = () => {
+  const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+  const options = {
+    redirect_uri: envConfig.NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URI,
+    client_id: envConfig.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+    access_type: "offline",
+    response_type: "code",
+    prompt: "consent",
+    scope: [
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email",
+    ].join(" "),
+  };
+  const qs = new URLSearchParams(options);
+  return `${rootUrl}?${qs.toString()}`;
+};
+const googleOauthUrl = getOauthGoogleUrl();
+console.log("googleOauthUrl", googleOauthUrl);
 export default function LoginForm() {
   const loginMutation = useLoginMutation();
   const searchParams = useSearchParams();
@@ -128,9 +147,11 @@ export default function LoginForm() {
               <Button type="submit" className="w-full">
                 Đăng nhập
               </Button>
-              <Button variant="outline" className="w-full" type="button">
-                Đăng nhập bằng Google
-              </Button>
+              <Link href={googleOauthUrl}>
+                <Button variant="outline" className="w-full" type="button">
+                  Đăng nhập bằng Google
+                </Button>
+              </Link>
             </div>
           </form>
         </Form>

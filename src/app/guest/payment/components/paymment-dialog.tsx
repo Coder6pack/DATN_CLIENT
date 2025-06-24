@@ -113,29 +113,6 @@ export default function PaymentDialog({
     setPaymentStatus,
     setShowConfetti,
   ]);
-  // useEffect(() => {
-  //   let checkTimer: NodeJS.Timeout | null = null;
-  //   if (socket) {
-  //     // Lắng nghe sự kiện 'payment'
-  //     socket.on("payment", (paymentData: { status: string }) => {
-  //       if (paymentData.status === "success") {
-  //         checkTimer = setTimeout(() => {
-  //           setPaymentStatus("success");
-  //           setShowConfetti(true);
-  //           setTimeout(() => {
-  //             onPaymentSuccess();
-  //             onOpenChange(false);
-  //           }, 3000);
-  //         }, 3000);
-  //       }
-  //     });
-
-  //     return () => {
-  //       socket.off("payment");
-  //       if (checkTimer) clearTimeout(checkTimer);
-  //     };
-  //   }
-  // }, [socket, onPaymentSuccess, onOpenChange]);
 
   // Reset state when dialog opens
   useEffect(() => {

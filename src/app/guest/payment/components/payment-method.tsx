@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   CreditCard,
   Banknote,
@@ -22,9 +21,7 @@ interface PaymentMethodProps {
 
 export default function PaymentMethod({
   paymentMethod,
-  onlineMethod,
   onPaymentMethodChange,
-  onOnlineMethodChange,
 }: PaymentMethodProps) {
   return (
     <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">

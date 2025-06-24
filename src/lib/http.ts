@@ -197,7 +197,11 @@
 // export default http;
 
 import envConfig from "@/config";
-import { normalizePath } from "@/lib/utils";
+import {
+  normalizePath,
+  setAccessTokenToLocalStorage,
+  setRefreshTokenToLocalStorage,
+} from "@/lib/utils";
 import { LoginResType } from "@/schemaValidations/auth.model";
 import { GetProductsQueryType } from "@/schemaValidations/product.model";
 import { redirect } from "next/navigation";
@@ -376,6 +380,13 @@ const request = async <Response>(
       const { accessToken, refreshToken } = payload as LoginResType;
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
+    } else if ("api/auth/token" === normalizeUrl) {
+      const { accessToken, refreshToken } = payload as {
+        accessToken: string;
+        refreshToken: string;
+      };
+      setAccessTokenToLocalStorage(accessToken);
+      setRefreshTokenToLocalStorage(refreshToken);
     } else if (normalizeUrl === "api/auth/logout") {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");

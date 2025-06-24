@@ -8,6 +8,8 @@ const configSchema = z.object({
   NEXT_PUBLIC_OWNER_NAME: z.string(),
   NEXT_PUBLIC_CONTENT: z.string(),
   NEXT_PUBLIC_BANK_NAME_SHORT: z.string(),
+  NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID: z.string(),
+  NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URI: z.string(),
 });
 
 const configProject = configSchema.safeParse({
@@ -18,6 +20,10 @@ const configProject = configSchema.safeParse({
   NEXT_PUBLIC_OWNER_NAME: process.env.NEXT_PUBLIC_OWNER_NAME,
   NEXT_PUBLIC_CONTENT: process.env.NEXT_PUBLIC_CONTENT,
   NEXT_PUBLIC_BANK_NAME_SHORT: process.env.NEXT_PUBLIC_BANK_NAME_SHORT,
+  NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID:
+    process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+  NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URI:
+    process.env.NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URI,
 });
 
 if (!configProject.success) {

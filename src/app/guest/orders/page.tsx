@@ -16,13 +16,15 @@ import OrderCard from "./components/order-card";
 import { useListOrder } from "@/app/queries/useOrder";
 import { GetOrdersType } from "@/schemaValidations/order.model";
 import { statusConfig } from "@/constants/order.constant";
+import { useSocket } from "@/lib/socket";
 
 export default function OrdersPage() {
+  const { socket, isConnected } = useSocket();
   const [filteredOrders, setFilteredOrders] = useState<GetOrdersType>();
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const { data } = useListOrder({ page: 1, limit: 100 });
+  const { data, refetch } = useListOrder({ page: 1, limit: 100 });
 
   useEffect(() => {
     if (!data) {
@@ -58,6 +60,21 @@ export default function OrdersPage() {
     // setFilteredOrders(filtered);
   }, [data, selectedStatus, searchQuery]);
 
+  useEffect(() => {
+    if (!socket) return; // Thoát sớm nếu socket chưa sẵn sàng
+
+    const handlePayment = (paymentData: { status: string }) => {
+      if (paymentData.status === "success") {
+        refetch();
+      }
+    };
+
+    socket.on("payment", handlePayment);
+
+    return () => {
+      socket.off("payment", handlePayment);
+    };
+  }, [socket, refetch]);
   if (!data) {
     return <div>Loading ...</div>;
   }

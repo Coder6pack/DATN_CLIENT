@@ -66,4 +66,7 @@ export const authApiRequest = {
 
   forgotPassword: (body: ForgotPasswordBodyType) =>
     http.post("/auth/forgot-password", body),
+
+  setTokenToCookie: (body: { accessToken: string; refreshToken: string }) =>
+    http.post("/api/auth/token", body, { baseUrl: "" }),
 };
