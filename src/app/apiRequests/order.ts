@@ -8,7 +8,6 @@ import {
   UpdateOrderBodyType,
   UpdateOrderResType,
 } from "@/schemaValidations/order.model";
-import { PaginationQueryType } from "@/shared/models/request.model";
 
 function buildQueryString(params: GetOrderListQueryType): string {
   const queryParts: string[] = [];

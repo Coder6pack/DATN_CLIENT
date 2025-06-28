@@ -4,8 +4,6 @@ import Image from "next/image";
 import {
   Package,
   Truck,
-  CheckCircle,
-  Clock,
   AlertCircle,
   Calendar,
   Eye,
@@ -28,6 +26,9 @@ import OrderDetail from "./order-detail";
 import ReviewDialog from "./review-dialog";
 import { GetOrderPropsType } from "@/schemaValidations/order.model";
 import { statusConfig } from "@/constants/order.constant";
+import { DialogDescription } from "@radix-ui/react-dialog";
+import { useGetReview } from "@/app/queries/useReview";
+import { GetReviewDetailResType } from "@/schemaValidations/review.model";
 
 const getStatusProgress = (status: string) => {
   switch (status) {
@@ -49,7 +50,19 @@ const getStatusProgress = (status: string) => {
 export default function OrderCard({ order }: GetOrderPropsType) {
   const StatusIcon = statusConfig[order.status].icon;
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-
+  const existingReviews: Record<number, GetReviewDetailResType> = {};
+  // order.items.forEach((item) => {
+  //   const { data } = useGetReview(
+  //     {
+  //       productId: item.productId?.toString() ?? "",
+  //       orderId: order.id.toString(),
+  //     },
+  //     !!item.productId // Chỉ gọi API khi productId hợp lệ
+  //   );
+  //   if (data) {
+  //     existingReviews[item.id] = data.payload;
+  //   }
+  // });
   return (
     <Card className="border-2 rounded-3xl hover:shadow-lg transition-all duration-300">
       <CardHeader className="pb-4">
@@ -174,6 +187,7 @@ export default function OrderCard({ order }: GetOrderPropsType) {
                   <span>Chi tiết đơn hàng {order.id}</span>
                 </DialogTitle>
               </DialogHeader>
+              <DialogDescription>Xin hãy đánh giá</DialogDescription>
               <OrderDetail orderId={order.id} />
             </DialogContent>
           </Dialog>
@@ -188,12 +202,12 @@ export default function OrderCard({ order }: GetOrderPropsType) {
                 <Star className="h-4 w-4 mr-2" />
                 Đánh giá
               </Button>
-              {/* <ReviewDialog
+              <ReviewDialog
                 isOpen={showReviewDialog}
                 onClose={() => setShowReviewDialog(false)}
                 orderItems={order.items}
-                orderId={order.id}
-              /> */}
+                orderId={order.id.toString()}
+              />
             </>
           )}
 

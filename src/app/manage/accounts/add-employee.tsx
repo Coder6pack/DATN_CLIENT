@@ -64,7 +64,6 @@ export default function AddEmployee() {
           formData
         );
         const imageUrl = uploadImageResult.payload.data[0].url;
-        console.log(imageUrl);
         body = {
           ...values,
           avatar: imageUrl,

@@ -1,28 +1,343 @@
+// "use client";
+
+// import { useState, useEffect } from "react"; // Thêm useEffect
+// import { X, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+// import { Button } from "@/components/ui/button";
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogDescription,
+//   DialogHeader,
+//   DialogTitle,
+// } from "@/components/ui/dialog";
+// import ProductReviewCard from "./product-review-card";
+// import SingleProductReviewDialog from "./single-product-review-dialog";
+// import { CreateReviewResType } from "@/schemaValidations/review.model";
+// import { useGetReview } from "@/app/queries/useReview";
+
+// interface OrderItem {
+//   productId: number | null;
+//   orderId: number | null;
+//   id: number;
+//   createdAt: Date;
+//   image: string;
+//   productName: string;
+//   skuPrice: number;
+//   skuValue: string;
+//   skuId: number | null;
+//   quantity: number;
+// }
+
+// interface ReviewDialogProps {
+//   isOpen: boolean;
+//   onClose: () => void;
+//   orderItems: OrderItem[];
+//   orderId: string;
+//   existingReviews?: Record<number, CreateReviewResType>;
+// }
+
+// export default function ReviewDialog({
+//   isOpen,
+//   onClose,
+//   orderItems,
+//   orderId,
+//   existingReviews = {},
+// }: ReviewDialogProps) {
+//   const [selectedProduct, setSelectedProduct] = useState<{
+//     item: OrderItem;
+//     isEdit: boolean;
+//     existingReview?: CreateReviewResType;
+//   } | null>(null);
+
+//   const [reviews, setReviews] =
+//     useState<Record<number, CreateReviewResType>>(existingReviews);
+//   const [currentSlide, setCurrentSlide] = useState(0);
+
+//   // Gọi useGetReview cho từng sản phẩm
+//   const reviewQueries = orderItems.map((item) =>
+//     useGetReview(
+//       {
+//         orderId,
+//         productId: item.productId?.toString() || "",
+//       },
+//       !!orderId && !!item.productId // Chỉ gọi API nếu orderId và productId hợp lệ
+//     )
+//   );
+
+//   // Cập nhật reviews từ dữ liệu API
+//   useEffect(() => {
+//     const newReviews: Record<number, CreateReviewResType> = {
+//       ...existingReviews,
+//     };
+//     reviewQueries.forEach((query, index) => {
+//       const item = orderItems[index];
+//       if (query.data && item.productId) {
+//         newReviews[item.id] = {
+//           ...query.data.payload,
+//           // Đảm bảo createdAt và updatedAt là đối tượng Date
+//           createdAt: query.data.payload.createdAt
+//             ? new Date(query.data.payload.createdAt)
+//             : new Date(),
+//           updatedAt: query.data.payload.updatedAt
+//             ? new Date(query.data.payload.updatedAt)
+//             : new Date(),
+//           medias:
+//             query.data.payload.medias?.map((media) => ({
+//               ...media,
+//               createdAt: media.createdAt
+//                 ? new Date(media.createdAt)
+//                 : new Date(),
+//             })) || [],
+//         };
+//       }
+//     });
+
+//     // Chỉ cập nhật state nếu có thay đổi
+//     if (JSON.stringify(newReviews) !== JSON.stringify(reviews)) {
+//       setReviews(newReviews);
+//     } else if (
+//       Object.keys(reviews).length === 0 &&
+//       Object.keys(existingReviews).length > 0
+//     ) {
+//       setReviews(existingReviews); // Khôi phục existingReviews nếu không có dữ liệu từ API
+//     }
+//   }, [reviewQueries, orderItems, existingReviews, reviews]);
+
+//   const handleProductReview = (productId: number, isEdit: boolean) => {
+//     const item = orderItems.find((item) => item.id === productId);
+//     if (!item) return;
+
+//     setSelectedProduct({
+//       item,
+//       isEdit,
+//       existingReview: reviews[productId],
+//     });
+//   };
+
+//   const handleReviewSubmitSuccess = (
+//     productId: number,
+//     review: CreateReviewResType
+//   ) => {
+//     setReviews((prev) => ({
+//       ...prev,
+//       [productId]: {
+//         ...review,
+//         // Đảm bảo createdAt và updatedAt là Date
+//         createdAt: new Date(review.createdAt),
+//         updatedAt: new Date(review.updatedAt),
+//         medias:
+//           review.medias?.map((media) => ({
+//             ...media,
+//             createdAt: new Date(media.createdAt),
+//           })) || [],
+//       },
+//     }));
+//     setSelectedProduct(null);
+//   };
+//   console.log(reviews);
+//   const getReviewStats = () => {
+//     const totalProducts = orderItems.length;
+//     const reviewedProducts = Object.keys(reviews).length;
+//     return { totalProducts, reviewedProducts };
+//   };
+
+//   const { totalProducts, reviewedProducts } = getReviewStats();
+
+//   const nextSlide = () => {
+//     setCurrentSlide((prev) => (prev + 1) % Math.ceil(orderItems.length / 2));
+//   };
+
+//   const prevSlide = () => {
+//     setCurrentSlide(
+//       (prev) =>
+//         (prev - 1 + Math.ceil(orderItems.length / 2)) %
+//         Math.ceil(orderItems.length / 2)
+//     );
+//   };
+
+//   const renderProductCards = () => {
+//     if (orderItems.length === 1) {
+//       return (
+//         <div className="flex justify-center">
+//           <div className="w-full max-w-md">
+//             <ProductReviewCard
+//               item={orderItems[0]}
+//               orderId={orderId}
+//               existingReview={reviews[orderItems[0].id]}
+//               onReview={handleProductReview}
+//             />
+//           </div>
+//         </div>
+//       );
+//     }
+
+//     const itemsPerSlide = 2;
+//     const totalSlides = Math.ceil(orderItems.length / itemsPerSlide);
+//     const startIndex = currentSlide * itemsPerSlide;
+//     const endIndex = Math.min(startIndex + itemsPerSlide, orderItems.length);
+//     const currentItems = orderItems.slice(startIndex, endIndex);
+
+//     return (
+//       <div className="space-y-4">
+//         <div className="flex items-center justify-between">
+//           <h4 className="text-lg font-semibold">
+//             Sản phẩm trong đơn hàng ({orderItems.length})
+//           </h4>
+//           {totalSlides > 1 && (
+//             <div className="flex items-center space-x-2">
+//               <Button
+//                 variant="outline"
+//                 size="sm"
+//                 onClick={prevSlide}
+//                 disabled={currentSlide === 0}
+//               >
+//                 <ChevronLeft className="h-4 w-4" />
+//               </Button>
+//               <span className="text-sm text-muted-foreground">
+//                 {currentSlide + 1} / {totalSlides}
+//               </span>
+//               <Button
+//                 variant="outline"
+//                 size="sm"
+//                 onClick={nextSlide}
+//                 disabled={currentSlide === totalSlides - 1}
+//               >
+//                 <ChevronRight className="h-4 w-4" />
+//               </Button>
+//             </div>
+//           )}
+//         </div>
+
+//         <div className="relative">
+//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[300px]">
+//             {currentItems.map((item) => (
+//               <div
+//                 key={item.id}
+//                 className="transform transition-all duration-300 hover:scale-[1.02]"
+//               >
+//                 <ProductReviewCard
+//                   item={item}
+//                   orderId={orderId}
+//                   existingReview={reviews[item.id]}
+//                   onReview={handleProductReview}
+//                 />
+//               </div>
+//             ))}
+//           </div>
+
+//           {totalSlides > 1 && (
+//             <div className="flex justify-center mt-4 space-x-2">
+//               {Array.from({ length: totalSlides }).map((_, index) => (
+//                 <button
+//                   key={index}
+//                   onClick={() => setCurrentSlide(index)}
+//                   className={`w-2 h-2 rounded-full transition-colors ${
+//                     index === currentSlide
+//                       ? "bg-primary"
+//                       : "bg-muted-foreground/30"
+//                   }`}
+//                 />
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//     );
+//   };
+
+//   return (
+//     <>
+//       <Dialog open={isOpen} onOpenChange={onClose}>
+//         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+//           <DialogHeader>
+//             <DialogTitle className="flex items-center justify-between">
+//               <div className="flex items-center space-x-2">
+//                 <MessageCircle className="h-5 w-5 text-primary" />
+//                 <span>Đánh giá đơn hàng #{orderId}</span>
+//               </div>
+//             </DialogTitle>
+//           </DialogHeader>
+//           <DialogDescription>Xin hãy đánh giá</DialogDescription>
+//           <div className="space-y-6">
+//             <div className="text-center bg-muted/30 rounded-xl p-4">
+//               <div className="flex items-center justify-center space-x-4 mb-2">
+//                 <div className="text-2xl font-bold text-primary">
+//                   {reviewedProducts}
+//                 </div>
+//                 <div className="text-muted-foreground">/</div>
+//                 <div className="text-2xl font-bold">{totalProducts}</div>
+//               </div>
+//               <p className="text-sm text-muted-foreground">
+//                 {reviewedProducts === totalProducts
+//                   ? "Bạn đã đánh giá tất cả sản phẩm"
+//                   : `Đã đánh giá ${reviewedProducts} trong ${totalProducts} sản phẩm`}
+//               </p>
+//             </div>
+
+//             <div className="text-center">
+//               <h3 className="text-xl font-semibold mb-2">
+//                 Đánh giá từng sản phẩm
+//               </h3>
+//               <p className="text-muted-foreground">
+//                 {orderItems.length === 1
+//                   ? "Nhấn vào sản phẩm để bắt đầu đánh giá."
+//                   : "Chọn sản phẩm bạn muốn đánh giá. Sử dụng nút điều hướng để xem thêm sản phẩm."}
+//               </p>
+//             </div>
+
+//             {renderProductCards()}
+
+//             <div className="text-center text-sm text-muted-foreground border-t pt-4">
+//               <p>Bạn có thể đánh giá và sửa đánh giá bất cứ lúc nào</p>
+//             </div>
+//           </div>
+//         </DialogContent>
+//       </Dialog>
+
+//       {selectedProduct && (
+//         <SingleProductReviewDialog
+//           isOpen={!!selectedProduct}
+//           onClose={() => setSelectedProduct(null)}
+//           item={selectedProduct.item}
+//           orderId={orderId}
+//           existingReview={selectedProduct.existingReview}
+//           isEdit={selectedProduct.isEdit}
+//           onSubmitSuccess={(review) =>
+//             handleReviewSubmitSuccess(selectedProduct.item.id, review)
+//           }
+//         />
+//       )}
+//     </>
+//   );
+// }
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
-import { Star, Send, X, Camera, MessageCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import ProductReviewCard from "./product-review-card";
+import SingleProductReviewDialog from "./single-product-review-dialog";
+import { CreateReviewResType } from "@/schemaValidations/review.model";
+import { useGetReview } from "@/app/queries/useReview";
 
 interface OrderItem {
+  productId: number | null;
+  orderId: number | null;
   id: number;
-  name: string;
+  createdAt: Date;
   image: string;
-  price: string;
+  productName: string;
+  skuPrice: number;
+  skuValue: string;
+  skuId: number | null;
   quantity: number;
-  size?: string;
-  color?: string;
 }
 
 interface ReviewDialogProps {
@@ -30,13 +345,7 @@ interface ReviewDialogProps {
   onClose: () => void;
   orderItems: OrderItem[];
   orderId: string;
-}
-
-interface ItemReview {
-  itemId: number;
-  rating: number;
-  comment: string;
-  images: string[];
+  existingReviews?: Record<number, CreateReviewResType>[];
 }
 
 export default function ReviewDialog({
@@ -44,264 +353,358 @@ export default function ReviewDialog({
   onClose,
   orderItems,
   orderId,
+  existingReviews = [],
 }: ReviewDialogProps) {
-  const [reviews, setReviews] = useState<ItemReview[]>(
-    orderItems.map((item) => ({
-      itemId: item.id,
-      rating: 0,
-      comment: "",
-      images: [],
-    }))
+  const [selectedProduct, setSelectedProduct] = useState<{
+    item: OrderItem;
+    isEdit: boolean;
+    existingReview?: CreateReviewResType;
+  } | null>(null);
+
+  const [reviews, setReviews] =
+    useState<Record<number, CreateReviewResType>[]>(existingReviews);
+
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Gọi useGetReview cho từng sản phẩm
+  const reviewQueries = orderItems.map((item) =>
+    useGetReview(
+      {
+        orderId,
+        productId: item.productId?.toString() || "",
+      },
+      !!orderId && !!item.productId
+    )
   );
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
 
-  const handleRatingChange = (itemId: number, rating: number) => {
-    setReviews((prev) =>
-      prev.map((review) =>
-        review.itemId === itemId ? { ...review, rating } : review
-      )
-    );
-  };
+  // Cập nhật reviews từ dữ liệu API
+  useEffect(() => {
+    const newReviews: Record<number, CreateReviewResType>[] = [...reviews];
 
-  const handleCommentChange = (itemId: number, comment: string) => {
-    setReviews((prev) =>
-      prev.map((review) =>
-        review.itemId === itemId ? { ...review, comment } : review
-      )
-    );
-  };
+    reviewQueries.forEach((query, index) => {
+      const item = orderItems[index];
+      if (query.data && item.productId) {
+        const reviewData: CreateReviewResType = {
+          ...query.data.payload,
+          createdAt: query.data.payload.createdAt
+            ? new Date(query.data.payload.createdAt)
+            : new Date(),
+          updatedAt: query.data.payload.updatedAt
+            ? new Date(query.data.payload.updatedAt)
+            : new Date(),
+          medias:
+            query.data.payload.medias?.map((media) => ({
+              ...media,
+              createdAt: media.createdAt
+                ? new Date(media.createdAt)
+                : new Date(),
+            })) || [],
+        };
 
-  const handleSubmitReviews = async () => {
-    setIsSubmitting(true);
+        // Kiểm tra xem đã có record cho productId này chưa
+        let existingRecord = newReviews.find((record) =>
+          Object.prototype.hasOwnProperty.call(record, item.id)
+        );
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+        if (!existingRecord) {
+          // Tạo record mới nếu chưa tồn tại
+          existingRecord = { [item.id]: reviewData };
+          newReviews.push(existingRecord);
+        } else {
+          // Cập nhật record hiện có
+          existingRecord[item.id] = reviewData;
+        }
+      }
+    });
 
-    // Here you would send reviews to your backend
-    console.log("Submitting reviews:", reviews);
-
-    setIsSubmitting(false);
-    onClose();
-
-    // Show success message (you can implement toast notification)
-    alert(
-      "Cảm ơn bạn đã đánh giá! Đánh giá của bạn sẽ giúp ích cho những khách hàng khác."
-    );
-  };
-
-  const getRatingText = (rating: number) => {
-    switch (rating) {
-      case 1:
-        return "Rất không hài lòng";
-      case 2:
-        return "Không hài lòng";
-      case 3:
-        return "Bình thường";
-      case 4:
-        return "Hài lòng";
-      case 5:
-        return "Rất hài lòng";
-      default:
-        return "Chưa đánh giá";
+    // Cập nhật state nếu có thay đổi
+    if (JSON.stringify(newReviews) !== JSON.stringify(reviews)) {
+      setReviews(newReviews);
+    } else if (
+      newReviews.length === 0 &&
+      existingReviews &&
+      existingReviews.length > 0
+    ) {
+      setReviews(existingReviews);
     }
+  }, [reviewQueries, orderItems, existingReviews, reviews]);
+
+  const handleProductReview = (productId: number, isEdit: boolean) => {
+    const item = orderItems.find((item) => item.id === productId);
+    if (!item) return;
+
+    // Tìm tất cả đánh giá cho sản phẩm này
+    const productReviews = reviews
+      .filter((record) =>
+        Object.prototype.hasOwnProperty.call(record, productId)
+      )
+      .map((record) => record[productId]);
+
+    // Chọn đánh giá đầu tiên (có thể điều chỉnh để chọn đánh giá cụ thể)
+    const existingReview = productReviews[0] || undefined;
+
+    setSelectedProduct({
+      item,
+      isEdit,
+      existingReview,
+    });
   };
 
-  const canSubmit = reviews.every((review) => review.rating > 0);
+  const handleReviewSubmitSuccess = (
+    productId: number,
+    review: CreateReviewResType
+  ) => {
+    setReviews((prev) => {
+      const newReviews = [...prev];
+      const reviewData: CreateReviewResType = {
+        ...review,
+        createdAt: new Date(review.createdAt),
+        updatedAt: new Date(review.updatedAt),
+        medias:
+          review.medias?.map((media) => ({
+            ...media,
+            createdAt: new Date(media.createdAt),
+          })) || [],
+      };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <MessageCircle className="h-5 w-5 text-primary" />
-              <span>Đánh giá đơn hàng {orderId}</span>
-            </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogTitle>
-        </DialogHeader>
+      // Tìm record hiện có
+      const existingRecordIndex = newReviews.findIndex((record) =>
+        Object.prototype.hasOwnProperty.call(record, productId)
+      );
 
-        <div className="space-y-6">
-          {/* Progress indicator */}
-          <div className="flex items-center justify-center space-x-2 mb-6">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
-                1
-              </div>
-              <span className="text-sm font-medium">Đánh giá sản phẩm</span>
-            </div>
+      if (existingRecordIndex >= 0) {
+        // Cập nhật record hiện có
+        newReviews[existingRecordIndex] = {
+          ...newReviews[existingRecordIndex],
+          [productId]: reviewData,
+        };
+      } else {
+        // Thêm record mới
+        newReviews.push({ [productId]: reviewData });
+      }
+
+      return newReviews;
+    });
+    setSelectedProduct(null);
+  };
+
+  const getReviewStats = () => {
+    const totalProducts = orderItems.length;
+    // Đếm số lượng sản phẩm có ít nhất một đánh giá
+    const reviewedProducts = new Set(
+      reviews.flatMap((record) => Object.keys(record).map(Number))
+    ).size;
+    return { totalProducts, reviewedProducts };
+  };
+
+  const { totalProducts, reviewedProducts } = getReviewStats();
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % Math.ceil(orderItems.length / 2));
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide(
+      (prev) =>
+        (prev - 1 + Math.ceil(orderItems.length / 2)) %
+        Math.ceil(orderItems.length / 2)
+    );
+  };
+
+  const renderProductCards = () => {
+    if (orderItems.length === 1) {
+      const item = orderItems[0];
+      const productReviews = reviews
+        .filter((record) =>
+          Object.prototype.hasOwnProperty.call(record, item.id)
+        )
+        .map((record) => record[item.id]);
+
+      return (
+        <div className="flex justify-center">
+          <div className="w-full max-w-md space-y-4">
+            {productReviews.length > 0 ? (
+              productReviews.map((review, index) => (
+                <ProductReviewCard
+                  key={`${item.id}-${index}`}
+                  item={item}
+                  orderId={orderId}
+                  existingReview={review}
+                  onReview={handleProductReview}
+                />
+              ))
+            ) : (
+              <ProductReviewCard
+                item={item}
+                orderId={orderId}
+                existingReview={undefined}
+                onReview={handleProductReview}
+              />
+            )}
           </div>
+        </div>
+      );
+    }
 
-          {/* Review Form */}
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-semibold mb-2">
-                Chia sẻ trải nghiệm của bạn
-              </h3>
-              <p className="text-muted-foreground">
-                Đánh giá của bạn sẽ giúp những khách hàng khác có thêm thông tin
-                để đưa ra quyết định mua hàng
-              </p>
+    const itemsPerSlide = 2;
+    const totalSlides = Math.ceil(orderItems.length / itemsPerSlide);
+    const startIndex = currentSlide * itemsPerSlide;
+    const endIndex = Math.min(startIndex + itemsPerSlide, orderItems.length);
+    const currentItems = orderItems.slice(startIndex, endIndex);
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="text-lg font-semibold">
+            Sản phẩm trong đơn hàng ({orderItems.length})
+          </h4>
+          {totalSlides > 1 && (
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={prevSlide}
+                disabled={currentSlide === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {currentSlide + 1} / {totalSlides}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={nextSlide}
+                disabled={currentSlide === totalSlides - 1}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
+          )}
+        </div>
 
-            {orderItems.map((item, index) => {
-              const review = reviews.find((r) => r.itemId === item.id);
+        <div className="relative">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[300px]">
+            {currentItems.map((item) => {
+              const productReviews = reviews
+                .filter((record) =>
+                  Object.prototype.hasOwnProperty.call(record, item.id)
+                )
+                .map((record) => record[item.id]);
 
-              return (
-                <Card
+              return productReviews.length > 0 ? (
+                productReviews.map((review, index) => (
+                  <div
+                    key={`${item.id}-${index}`}
+                    className="transform transition-all duration-300 hover:scale-[1.02]"
+                  >
+                    <ProductReviewCard
+                      item={item}
+                      orderId={orderId}
+                      existingReview={review}
+                      onReview={handleProductReview}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div
                   key={item.id}
-                  className="border-2 rounded-2xl transition-all duration-300 hover:shadow-lg"
+                  className="transform transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <CardContent className="p-6">
-                    <div className="flex items-start space-x-4 mb-6">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        width={80}
-                        height={80}
-                        className="rounded-xl object-cover"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-lg mb-2">
-                          {item.name}
-                        </h4>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-2">
-                          {item.size && (
-                            <Badge variant="outline">Size: {item.size}</Badge>
-                          )}
-                          {item.color && (
-                            <Badge variant="outline">Màu: {item.color}</Badge>
-                          )}
-                          <Badge variant="outline">SL: {item.quantity}</Badge>
-                        </div>
-                        <p className="text-lg font-semibold text-primary">
-                          {item.price}₫
-                        </p>
-                      </div>
-                    </div>
-
-                    <Separator className="mb-6" />
-
-                    {/* Rating Section */}
-                    <div className="space-y-4">
-                      <div className="text-center">
-                        <p className="font-medium mb-3">
-                          Bạn cảm thấy sản phẩm này như thế nào?
-                        </p>
-                        <div className="flex items-center justify-center space-x-2 mb-2">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              onClick={() => handleRatingChange(item.id, star)}
-                              className="transition-all duration-200 hover:scale-110"
-                            >
-                              <Star
-                                className={`h-8 w-8 ${
-                                  star <= (review?.rating || 0)
-                                    ? "fill-yellow-400 text-yellow-400"
-                                    : "text-gray-300 hover:text-yellow-400"
-                                }`}
-                              />
-                            </button>
-                          ))}
-                        </div>
-                        <p className="text-sm font-medium text-primary">
-                          {getRatingText(review?.rating || 0)}
-                        </p>
-                      </div>
-
-                      {/* Comment Section */}
-                      {(review?.rating || 0) > 0 && (
-                        <div className="space-y-3">
-                          <label className="block text-sm font-medium">
-                            Chia sẻ thêm về sản phẩm này (không bắt buộc)
-                          </label>
-                          <Textarea
-                            placeholder="Hãy chia sẻ cảm nhận của bạn về chất lượng, thiết kế, độ vừa vặn... để giúp những khách hàng khác"
-                            value={review?.comment || ""}
-                            onChange={(e) =>
-                              handleCommentChange(item.id, e.target.value)
-                            }
-                            className="min-h-[100px] resize-none rounded-xl border-2 focus:border-primary"
-                          />
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>
-                              Tối thiểu 10 ký tự để đánh giá có ý nghĩa
-                            </span>
-                            <span>{review?.comment?.length || 0}/500</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Photo Upload Section */}
-                      {(review?.rating || 0) > 0 && (
-                        <div className="space-y-3">
-                          <label className="block text-sm font-medium">
-                            Thêm hình ảnh (không bắt buộc)
-                          </label>
-                          <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center hover:border-primary transition-colors cursor-pointer">
-                            <Camera className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">
-                              Thêm hình ảnh thực tế của sản phẩm
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Tối đa 5 ảnh, mỗi ảnh không quá 5MB
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                  <ProductReviewCard
+                    item={item}
+                    orderId={orderId}
+                    existingReview={undefined}
+                    onReview={handleProductReview}
+                  />
+                </div>
               );
             })}
           </div>
 
-          {/* Submit Section */}
-          <div className="border-t pt-6">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                {canSubmit ? (
-                  <span className="text-green-600 font-medium">
-                    ✓ Sẵn sàng gửi đánh giá
-                  </span>
-                ) : (
-                  <span>Vui lòng đánh giá tất cả sản phẩm</span>
-                )}
+          {totalSlides > 1 && (
+            <div className="flex justify-center mt-4 space-x-2">
+              {Array.from({ length: totalSlides }).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === currentSlide
+                      ? "bg-primary"
+                      : "bg-muted-foreground/30"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            Three
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <MessageCircle className="h-5 w-5 text-primary" />
+                <span>Đánh giá đơn hàng #{orderId}</span>
               </div>
-              <div className="flex space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  disabled={isSubmitting}
-                >
-                  Để sau
-                </Button>
-                <Button
-                  onClick={handleSubmitReviews}
-                  disabled={!canSubmit || isSubmitting}
-                  className="px-8"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                      Đang gửi...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Gửi đánh giá
-                    </>
-                  )}
-                </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <DialogDescription>Xin hãy đánh giá</DialogDescription>
+          <div className="space-y-6">
+            <div className="text-center bg-muted/30 rounded-xl p-4">
+              <div className="flex items-center justify-center space-x-4 mb-2">
+                <div className="text-2xl font-bold text-primary">
+                  {reviewedProducts}
+                </div>
+                <div className="text-muted-foreground">/</div>
+                <div className="text-2xl font-bold">{totalProducts}</div>
               </div>
+              <p className="text-sm text-muted-foreground">
+                {reviewedProducts === totalProducts
+                  ? "Bạn đã đánh giá tất cả sản phẩm"
+                  : `Đã đánh giá ${reviewedProducts} trong ${totalProducts} sản phẩm`}
+              </p>
+            </div>
+
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">
+                Đánh giá từng sản phẩm
+              </h3>
+              <p className="text-muted-foreground">
+                {orderItems.length === 1
+                  ? "Nhấn vào sản phẩm để bắt đầu đánh giá."
+                  : "Chọn sản phẩm bạn muốn đánh giá. Sử dụng nút điều hướng để xem thêm sản phẩm."}
+              </p>
+            </div>
+
+            {renderProductCards()}
+
+            <div className="text-center text-sm text-muted-foreground border-t pt-4">
+              <p>Bạn có thể đánh giá và sửa đánh giá bất cứ lúc nào</p>
             </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {selectedProduct && (
+        <SingleProductReviewDialog
+          isOpen={!!selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          item={selectedProduct.item}
+          orderId={orderId}
+          existingReview={selectedProduct.existingReview}
+          isEdit={selectedProduct.isEdit}
+          onSubmitSuccess={(review) =>
+            handleReviewSubmitSuccess(selectedProduct.item.id, review)
+          }
+        />
+      )}
+    </>
   );
 }
