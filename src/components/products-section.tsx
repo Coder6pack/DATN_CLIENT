@@ -80,11 +80,11 @@ export default function ProductsSection({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="text-xl font-bold text-primary">
-                          {product.virtualPrice.toLocaleString("vi-VN")}₫
+                          {product.virtualPrice.toLocaleString()}₫
                         </span>
                         {product.virtualPrice !== product.basePrice && (
                           <span className="text-sm text-muted-foreground line-through">
-                            {product.basePrice.toLocaleString("vi-VN")}₫
+                            {(product.virtualPrice + 30000).toLocaleString()}₫
                           </span>
                         )}
                       </div>

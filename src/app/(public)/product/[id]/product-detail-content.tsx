@@ -447,14 +447,17 @@ export default function ProductDetailContent({
                       <Star
                         key={i}
                         className={`h-5 w-5 ${
-                          i < Math.floor(avgRating)
+                          i <
+                          Math.floor(Number.isNaN(avgRating) ? 0 : avgRating)
                             ? "fill-yellow-400 text-yellow-400"
                             : "text-muted"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="text-lg font-semibold">{avgRating}</span>
+                  <span className="text-lg font-semibold">
+                    {Number.isNaN(avgRating) ? "" : avgRating}
+                  </span>
                   <span className="text-muted-foreground">
                     ({getReviews.length} đánh giá)
                   </span>
@@ -466,11 +469,11 @@ export default function ProductDetailContent({
             <div className="space-y-2">
               <div className="flex items-center space-x-4">
                 <span className="text-4xl font-bold text-primary">
-                  {formatCurrency(productDetail.basePrice)}₫
+                  {productDetail.virtualPrice.toLocaleString()}₫
                 </span>
-                {formatCurrency(productDetail.basePrice) && (
+                {productDetail.basePrice && (
                   <span className="text-2xl text-muted-foreground line-through">
-                    {formatCurrency(productDetail.virtualPrice)}₫
+                    {(productDetail.virtualPrice + 30000).toLocaleString()}₫
                   </span>
                 )}
               </div>
@@ -652,14 +655,17 @@ export default function ProductDetailContent({
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
                     <div className="text-center space-y-4">
                       <div className="text-6xl font-bold text-primary">
-                        {avgRating}
+                        {Number.isNaN(avgRating) ? "" : avgRating}
                       </div>
                       <div className="flex justify-center">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
                             className={`h-6 w-6 ${
-                              i < Math.floor(avgRating)
+                              i <
+                              Math.floor(
+                                Number.isNaN(avgRating) ? 0 : avgRating
+                              )
                                 ? "fill-yellow-400 text-yellow-400"
                                 : "text-muted"
                             }`}
@@ -667,7 +673,9 @@ export default function ProductDetailContent({
                         ))}
                       </div>
                       <p className="text-muted-foreground">
-                        Dựa trên {getReviews.length} đánh giá
+                        {Number.isNaN(avgRating)
+                          ? ""
+                          : `Dựa trên ${getReviews.length} đánh giá`}
                       </p>
                     </div>
 
