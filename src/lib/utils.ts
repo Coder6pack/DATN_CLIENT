@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import { jwtDecode } from "jwt-decode";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { UseFormSetError } from "react-hook-form";
@@ -8,7 +7,6 @@ import { toast } from "@/hooks/use-toast";
 import { authApiRequest } from "@/app/apiRequests/auth";
 import { AccessTokenPayload } from "@/types/token.type";
 import envConfig from "@/config";
-import { io } from "socket.io-client";
 import { addDays } from "date-fns";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -250,13 +248,6 @@ export function generateQrCode({
 }) {
   return `https://qr.sepay.vn/img?acc=${envConfig.NEXT_PUBLIC_ACC}&bank=${envConfig.NEXT_PUBLIC_BANK_NAME_SHORT}&amount=${total}&des=DH${paymentId}`;
 }
-export const generateSocketInstace = (accessToken: string) => {
-  return io("http://localhost:3003", {
-    auth: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-};
 
 export const getStatusProgress = (status: string) => {
   switch (status) {

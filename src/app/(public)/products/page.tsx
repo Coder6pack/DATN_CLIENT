@@ -21,10 +21,10 @@
 // import { ProductType } from "@/shared/models/shared-product.model";
 // import { useFilterProducts } from "@/app/queries/useProduct";
 // import { useListCategories } from "@/app/queries/useCategory";
-// import ProductFilter from "./product-filter";
-// import { useListBrand } from "@/app/queries/useBrand";
-// import { GetProductsQueryType } from "@/schemaValidations/product.model";
+// import ProductFilters from "./product-filter";
 // import ProductCard from "./product-card";
+// import { GetProductsQueryType } from "@/schemaValidations/product.model";
+// import { useListBrand } from "@/app/queries/useBrand";
 
 // const sortOptions = [
 //   { value: "newest", label: "Mới nhất" },
@@ -43,8 +43,6 @@
 //       }
 //     } else if (value !== "") {
 //       queryParts.push(`${key}=${encodeURIComponent(value)}`);
-//     } else if (typeof value === "boolean" && value) {
-//       queryParts.push(`${key}=true`);
 //     }
 //   });
 //   return queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
@@ -56,7 +54,6 @@
 //   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
 //   // Filter states
-//   const [searchQuery, setSearchQuery] = useState("");
 //   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
 //   const [selectedBrand, setSelectedBrand] = useState("Tất cả");
 //   const [priceRange, setPriceRange] = useState([0, 3000000]);
@@ -66,8 +63,7 @@
 
 //   // Fetch categories and brands
 //   const { data: cateList } = useListCategories();
-//   const { data: brandList } = useListBrand();
-
+//   const { data: brandList, refetch } = useListBrand();
 //   // Map sortBy to API params
 //   const getSortParams = () => {
 //     switch (sortBy) {
@@ -75,8 +71,6 @@
 //         return { sortBy: "price" as const, orderBy: "asc" as const };
 //       case "price-high":
 //         return { sortBy: "price" as const, orderBy: "desc" as const };
-//       // case "rating":
-//       //   return { sortBy: "rating" as const, orderBy: "desc" as const };
 //       case "newest":
 //       default:
 //         return { sortBy: "createdAt" as const, orderBy: "desc" as const };
@@ -98,9 +92,8 @@
 //     page,
 //     limit: 9,
 //     ...getSortParams(),
-//     name: searchQuery || undefined,
 //     brandIds: selectedBrand !== "Tất cả" ? [Number(selectedBrand)] : undefined,
-//     categories: selectedCategoryId,
+//     categories: selectedCategory !== "Tất cả" ? selectedCategoryId : undefined,
 //     minPrice: priceRange[0] || undefined,
 //     maxPrice: priceRange[1] || undefined,
 //   };
@@ -132,7 +125,6 @@
 //     setPage(1);
 //     setAllProducts([]);
 //   }, [
-//     searchQuery,
 //     selectedCategory,
 //     selectedBrand,
 //     priceRange,
@@ -142,7 +134,6 @@
 //   ]);
 
 //   const clearFilters = () => {
-//     setSearchQuery("");
 //     setSelectedCategory("Tất cả");
 //     setSelectedBrand("Tất cả");
 //     setPriceRange([0, 3000000]);
@@ -163,7 +154,7 @@
 //     }
 //   };
 
-//   // Client-side sorting (optional, since API handles sorting)
+//   // Client-side sorting
 //   const sortedProducts = useMemo(() => {
 //     return [...allProducts].sort((a, b) => {
 //       switch (sortBy) {
@@ -206,9 +197,9 @@
 //         <div className="flex flex-col lg:flex-row gap-8">
 //           {/* Desktop Filters Sidebar */}
 //           <div className="hidden lg:block w-80 flex-shrink-0">
-//             <ProductFilter
-//               searchQuery={searchQuery}
-//               setSearchQuery={setSearchQuery}
+//             <ProductFilters
+//               // searchQuery={searchQuery}
+//               // setSearchQuery={setSearchQuery}
 //               selectedCategory={selectedCategory}
 //               setSelectedCategory={setSelectedCategory}
 //               selectedBrand={selectedBrand}
@@ -240,9 +231,9 @@
 //                       <SheetTitle>Bộ lọc sản phẩm</SheetTitle>
 //                     </SheetHeader>
 //                     <div className="mt-6">
-//                       <ProductFilter
-//                         searchQuery={searchQuery}
-//                         setSearchQuery={setSearchQuery}
+//                       <ProductFilters
+//                         // searchQuery={searchQuery}
+//                         // setSearchQuery={setSearchQuery}
 //                         selectedCategory={selectedCategory}
 //                         setSelectedCategory={setSelectedCategory}
 //                         selectedBrand={selectedBrand}
@@ -484,7 +475,6 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [selectedBrand, setSelectedBrand] = useState("Tất cả");
   const [priceRange, setPriceRange] = useState([0, 3000000]);
@@ -494,7 +484,7 @@ export default function ProductsPage() {
 
   // Fetch categories and brands
   const { data: cateList } = useListCategories();
-  const { data: brandList } = useListBrand();
+  const { data: brandList, refetch } = useListBrand();
 
   // Map sortBy to API params
   const getSortParams = () => {
@@ -524,7 +514,6 @@ export default function ProductsPage() {
     page,
     limit: 9,
     ...getSortParams(),
-    name: searchQuery || undefined,
     brandIds: selectedBrand !== "Tất cả" ? [Number(selectedBrand)] : undefined,
     categories: selectedCategory !== "Tất cả" ? selectedCategoryId : undefined,
     minPrice: priceRange[0] || undefined,
@@ -558,7 +547,6 @@ export default function ProductsPage() {
     setPage(1);
     setAllProducts([]);
   }, [
-    searchQuery,
     selectedCategory,
     selectedBrand,
     priceRange,
@@ -568,15 +556,18 @@ export default function ProductsPage() {
   ]);
 
   const clearFilters = () => {
-    setSearchQuery("");
+    // Reset all filter states
     setSelectedCategory("Tất cả");
     setSelectedBrand("Tất cả");
     setPriceRange([0, 3000000]);
     setSortBy("newest");
     setShowOnSale(false);
     setMinRating(0);
+    // Force reset products and page
     setAllProducts([]);
     setPage(1);
+    // Trigger refetch of brands if needed
+    refetch();
   };
 
   const handleToggleFavorite = (product: ProductType) => {
@@ -601,8 +592,6 @@ export default function ProductsPage() {
           return a.virtualPrice - b.virtualPrice;
         case "price-high":
           return b.virtualPrice - a.virtualPrice;
-        // case "rating":
-        //   return (b.rating || 0) - (a.rating || 0);
         default:
           return 0;
       }
@@ -633,8 +622,6 @@ export default function ProductsPage() {
           {/* Desktop Filters Sidebar */}
           <div className="hidden lg:block w-80 flex-shrink-0">
             <ProductFilters
-              // searchQuery={searchQuery}
-              // setSearchQuery={setSearchQuery}
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
               selectedBrand={selectedBrand}
@@ -667,8 +654,6 @@ export default function ProductsPage() {
                     </SheetHeader>
                     <div className="mt-6">
                       <ProductFilters
-                        // searchQuery={searchQuery}
-                        // setSearchQuery={setSearchQuery}
                         selectedCategory={selectedCategory}
                         setSelectedCategory={setSelectedCategory}
                         selectedBrand={selectedBrand}

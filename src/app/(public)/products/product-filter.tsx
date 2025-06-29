@@ -47,6 +47,7 @@ export default function ProductFilters({
   }
   const brands = brandList.payload.data;
   const categories = cateList.payload.data;
+
   return (
     <Card className="sticky top-8 border-2 rounded-3xl">
       <CardContent className="p-6 max-h-[calc(100vh-6rem)] overflow-y-auto">
@@ -144,7 +145,7 @@ export default function ProductFilters({
           </div>
 
           {/* Rating */}
-          <div className="space-y-3">
+          {/* <div className="space-y-3">
             <h3 className="font-semibold text-lg">Đánh giá tối thiểu</h3>
             <div className="space-y-2">
               {[4, 3, 2, 1, 0].map((rating) => (
@@ -173,10 +174,10 @@ export default function ProductFilters({
                 </button>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* Special Filters */}
-          <div className="space-y-3">
+          {/* <div className="space-y-3">
             <h3 className="font-semibold text-lg">Bộ lọc đặc biệt</h3>
             <div className="space-y-3">
               <label className="flex items-center space-x-3 cursor-pointer">
@@ -189,7 +190,7 @@ export default function ProductFilters({
                 </span>
               </label>
             </div>
-          </div>
+          </div> */}
 
           {/* Clear Filters */}
           <Button variant="outline" className="w-full" onClick={onClearFilters}>

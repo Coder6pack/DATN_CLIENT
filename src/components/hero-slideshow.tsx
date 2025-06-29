@@ -19,10 +19,6 @@ export default function HeroSlideshow({
 }: HeroSlideshowProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const router = useRouter();
-
-  const handleOnclick = () => {
-    router.push("/products");
-  };
   useEffect(() => {
     if (slides.length === 0) return;
 
@@ -32,7 +28,9 @@ export default function HeroSlideshow({
 
     return () => clearInterval(timer);
   }, [slides.length, autoAdvanceInterval]);
-
+  const handleOnclick = () => {
+    router.push("/products");
+  };
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
@@ -81,7 +79,11 @@ export default function HeroSlideshow({
                 Thoải mái, trang trọng và đẳng cấp
               </p>
               <Link href="/products" passHref>
-                <Button size="lg" className="animate-fade-in-delay-2">
+                <Button
+                  size="lg"
+                  className="animate-fade-in-delay-2"
+                  onClick={handleOnclick}
+                >
                   Mua ngay
                 </Button>
               </Link>

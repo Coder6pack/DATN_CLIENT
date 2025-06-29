@@ -5,6 +5,7 @@ import {
   GetOrderDetailResType,
   GetOrderListQueryType,
   GetOrderListResType,
+  GetOrderParamsType,
   UpdateOrderBodyType,
   UpdateOrderResType,
 } from "@/schemaValidations/order.model";
@@ -37,6 +38,9 @@ const orderApiRequest = {
     const queryString = buildQueryString(query);
     return http.get<GetOrderListResType>(`/orders${queryString}`);
   },
+
+  getOrderManage: (params: GetOrderParamsType) =>
+    http.get<GetOrderDetailResType>(`/orders/manage/${params.orderId}`),
 
   getOrder: (id: number) => http.get<GetOrderDetailResType>(`/orders/${id}`),
 

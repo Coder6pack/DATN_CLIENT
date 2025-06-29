@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -20,32 +20,85 @@ import {
   MessageCircle,
   ThumbsUp,
   Eye,
-  ArrowRight,
+  Edit3,
+  ImageIcon,
+  Video,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import type { ProductDetail, Review, Product } from "@/types";
+import type { Review } from "@/types";
 import { useGetProduct } from "@/app/queries/useProduct";
-import { ProductType } from "@/shared/models/shared-product.model";
 import { formatCurrency } from "@/lib/utils";
 import { useAddCartMutation } from "@/app/queries/useCart";
 import { toast } from "@/hooks/use-toast";
+import { useListReview } from "@/app/queries/useReview";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
+import RelatedProduct from "@/components/related-product";
 
 interface ProductDetailContentProps {
   productId: number;
-  initialProduct?: ProductDetail;
   initialReviews?: Review[];
-  initialRelatedProducts?: ProductType[];
 }
 
+interface ReduceRating {
+  stars: number;
+  count: number;
+  percentage: number;
+}
+
+interface ReviewFilter {
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+  productId: number;
+  userId: number;
+  content: string;
+  orderId: number;
+  rating: number;
+  updateCount: number;
+  medias: {
+    id: number;
+    type: "IMAGE" | "VIDEO";
+    createdAt: Date;
+    url: string;
+    reviewId: number;
+  }[];
+  user: {
+    id: number;
+    name: string;
+    avatar: string | null;
+  };
+}
+interface MediaType {
+  type: "IMAGE" | "VIDEO";
+  url: string;
+}
+
+const careInstructions = [
+  {
+    value: "Giặt máy ở nhiệt độ không quá 40°C",
+  },
+  {
+    value: "Không sử dụng chất tẩy có chứa clo",
+  },
+  {
+    value: "Phơi khô tự nhiên, tránh ánh nắng trực tiếp",
+  },
+  {
+    value: "Ủi ở nhiệt độ trung bình",
+  },
+  {
+    value: "Có thể giặt khô",
+  },
+];
 export default function ProductDetailContent({
   productId,
-  initialProduct,
   initialReviews,
-  initialRelatedProducts,
 }: ProductDetailContentProps) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews || []);
 
@@ -56,20 +109,29 @@ export default function ProductDetailContent({
   const [selectedVariants, setSelectedVariants] = useState<{
     [key: string]: string | null;
   }>({});
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+  const [selectedReviewMedia, setSelectedReviewMedia] = useState<MediaType[]>(
+    []
+  );
   const { data, isLoading } = useGetProduct({
     id: productId || 0,
     enabled: Boolean(productId),
   });
+  const { data: reviewData } = useListReview({ productId });
   const addToCartMutation = useAddCartMutation();
-  if (!data) {
+  if (!data || !reviewData) {
     return;
   }
+  const getReviews = reviewData.payload.data;
+  const avgRating =
+    getReviews.reduce((acc, item) => acc + item.rating, 0) / getReviews.length;
   const productDetail = data.payload;
-
   const totalStock = productDetail.skus.reduce(
     (acc, item) => acc + item.stock,
     0
   );
+  const cateArr = productDetail.categories.map((cate) => cate.id);
   const handleQuantityChange = (change: number) => {
     setQuantity((prev) =>
       Math.max(1, Math.min(totalStock || 1, prev + change))
@@ -80,15 +142,12 @@ export default function ProductDetailContent({
     const allVariantsSelected = productDetail.variants.every(
       (variant) => selectedVariants[variant.value]
     );
-
     if (!allVariantsSelected) {
       alert("Vui lòng chọn đầy đủ các biến thể (ví dụ: màu sắc, kích thước)");
       return;
     }
-
     // Tạo chuỗi tổ hợp biến thể từ selectedVariants với định dạng "Trắng-XL"
     const variantString = Object.values(selectedVariants).join("-");
-
     // Tìm SKU khớp với tổ hợp biến thể
     const matchedSku = productDetail.skus.find(
       (sku) => sku.value === variantString
@@ -113,15 +172,27 @@ export default function ProductDetailContent({
   };
 
   const getRatingDistribution = () => {
-    return [
-      { stars: 5, count: 189, percentage: 77 },
-      { stars: 4, count: 41, percentage: 17 },
-      { stars: 3, count: 12, percentage: 5 },
-      { stars: 2, count: 3, percentage: 1 },
-      { stars: 1, count: 2, percentage: 0 },
-    ];
+    let result: ReduceRating[] = [];
+    let getTotal: ReviewFilter[] = [];
+    for (let i = 1; i < 6; i++) {
+      const total = getReviews.filter((review) => review.rating === i);
+      getTotal.push(...total);
+    }
+    for (let i = 1; i < 6; i++) {
+      const itemTotal = getTotal.filter((item) => item.rating === i);
+      result.push({
+        stars: i,
+        count: itemTotal.length,
+        percentage: Math.ceil((itemTotal.length / getReviews.length) * 100),
+      });
+    }
+    return result.reverse();
   };
-
+  const openMediaGallery = (media: MediaType[], startIndex = 0) => {
+    setSelectedReviewMedia(media);
+    setSelectedMediaIndex(startIndex);
+    setIsGalleryOpen(true);
+  };
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-20">
@@ -229,11 +300,6 @@ export default function ProductDetailContent({
                   }`}
                   priority
                 />
-                {/* {calculateDiscount() > 0 && (
-                  <Badge className="absolute top-6 left-6 bg-destructive text-destructive-foreground text-lg px-4 py-2 font-bold">
-                    -{calculateDiscount()}%
-                  </Badge>
-                )} */}
                 <Button
                   variant="secondary"
                   size="icon"
@@ -374,7 +440,6 @@ export default function ProductDetailContent({
               <h1 className="text-4xl font-bold text-foreground leading-tight">
                 {productDetail.name}
               </h1>
-              rating
               <div className="flex items-center space-x-6">
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center">
@@ -382,19 +447,17 @@ export default function ProductDetailContent({
                       <Star
                         key={i}
                         className={`h-5 w-5 ${
-                          i < Math.floor(5)
+                          i < Math.floor(avgRating)
                             ? "fill-yellow-400 text-yellow-400"
                             : "text-muted"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="text-lg font-semibold">{5}</span>
-                  <span className="text-muted-foreground">({5} đánh giá)</span>
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <Eye className="h-4 w-4 mr-1" />
-                  <span className="text-sm">1,247 lượt xem</span>
+                  <span className="text-lg font-semibold">{avgRating}</span>
+                  <span className="text-muted-foreground">
+                    ({getReviews.length} đánh giá)
+                  </span>
                 </div>
               </div>
             </div>
@@ -411,14 +474,6 @@ export default function ProductDetailContent({
                   </span>
                 )}
               </div>
-            </div>
-
-            {/* Description */}
-            <div className="prose prose-gray max-w-none">
-              <p
-                className="text-muted-foreground leading-relaxed text-lg"
-                dangerouslySetInnerHTML={{ __html: productDetail.description }}
-              />
             </div>
 
             {/* variants */}
@@ -572,57 +627,19 @@ export default function ProductDetailContent({
             <TabsContent value="description" className="mt-8">
               <Card className="border-2 rounded-3xl">
                 <CardContent className="p-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    <div className="space-y-6">
-                      <h3 className="text-2xl font-bold mb-6">
-                        Thông tin sản phẩm
-                      </h3>
-                      <div className="space-y-4">
-                        {[
-                          { label: "Thương hiệu", value: productDetail.brand },
-                          { label: "Mã sản phẩm", value: productDetail.skus },
-                          // { label: "Chất liệu", value: product.material },
-                          { label: "Xuất xứ", value: "Việt Nam" },
-                          {
-                            label: "Tình trạng",
-                            value: "Còn hàng",
-                            color: "text-green-600",
-                          },
-                        ].map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center py-3 border-b border-muted"
-                          >
-                            <span className="text-muted-foreground font-medium">
-                              {item.label}:
-                            </span>
-                            <span
-                              className={`font-semibold ${item.color || ""}`}
-                            >
-                              {/* {item.value} */}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-6">
-                      <h3 className="text-2xl font-bold mb-6">
-                        Đặc điểm nổi bật
-                      </h3>
-                      {/* <ul className="space-y-4">
-                        {product.features.map((feature, index) => (
-                          <li
-                            key={index}
-                            className="flex items-start space-x-3"
-                          >
-                            <Check className="h-6 w-6 text-primary mt-0.5 flex-shrink-0" />
-                            <span className="text-muted-foreground leading-relaxed">
-                              {feature}
-                            </span>
-                          </li>
-                        ))}
-                      </ul> */}
-                    </div>
+                  {/* Description */}
+                  <div className="flex justify-center">
+                    <h3 className="text-2xl font-bold mb-6">
+                      Thông tin sản phẩm
+                    </h3>
+                  </div>
+                  <div>
+                    <p
+                      className="text-muted-foreground leading-relaxed text-lg"
+                      dangerouslySetInnerHTML={{
+                        __html: productDetail.description,
+                      }}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -635,22 +652,22 @@ export default function ProductDetailContent({
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
                     <div className="text-center space-y-4">
                       <div className="text-6xl font-bold text-primary">
-                        {/* {product.rating} */}
+                        {avgRating}
                       </div>
                       <div className="flex justify-center">
-                        {/* {[...Array(5)].map((_, i) => (
+                        {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
                             className={`h-6 w-6 ${
-                              i < Math.floor(product.rating)
+                              i < Math.floor(avgRating)
                                 ? "fill-yellow-400 text-yellow-400"
                                 : "text-muted"
                             }`}
                           />
-                        ))} */}
+                        ))}
                       </div>
                       <p className="text-muted-foreground">
-                        Dựa trên {/*product.reviews*/} đánh giá
+                        Dựa trên {getReviews.length} đánh giá
                       </p>
                     </div>
 
@@ -680,26 +697,34 @@ export default function ProductDetailContent({
 
                   {/* Reviews List */}
                   <div className="space-y-8">
-                    {reviews.map((review) => (
+                    {getReviews.map((review) => (
                       <div
                         key={review.id}
                         className="border-b border-muted pb-8 last:border-b-0"
                       >
                         <div className="flex items-start space-x-4">
                           <Image
-                            src={review.avatar}
-                            alt={review.user}
+                            src={review.user.avatar || "/avatar.jpg"}
+                            alt={review.user.name}
                             width={50}
                             height={50}
                             className="rounded-full"
                           />
-                          <div className="flex-1 space-y-3">
+                          <div className="flex-1 space-y-4">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-semibold text-lg">
-                                {review.user}
-                              </h4>
+                              <div className="flex items-center space-x-3">
+                                <h4 className="font-semibold text-lg">
+                                  {review.user.name}
+                                </h4>
+                                {review.updateCount > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <Edit3 className="h-3 w-3 mr-1" />
+                                    Đã chỉnh sửa {review.updateCount} lần
+                                  </Badge>
+                                )}
+                              </div>
                               <span className="text-sm text-muted-foreground">
-                                {review.date}
+                                {new Date(review.updatedAt).toDateString()}
                               </span>
                             </div>
                             <div className="flex items-center space-x-2">
@@ -715,26 +740,72 @@ export default function ProductDetailContent({
                               ))}
                             </div>
                             <p className="text-muted-foreground leading-relaxed">
-                              {review.comment}
+                              {review.content}
                             </p>
-                            <div className="flex items-center space-x-4">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                <ThumbsUp className="h-4 w-4 mr-2" />
-                                Hữu ích ({review.helpful})
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                <MessageCircle className="h-4 w-4 mr-2" />
-                                Trả lời
-                              </Button>
-                            </div>
+
+                            {/* Review Media */}
+                            {review.medias.length > 0 && (
+                              <div className="space-y-3">
+                                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                                  <ImageIcon className="h-4 w-4" />
+                                  <span>
+                                    {
+                                      review.medias.filter(
+                                        (m) => m.type === "IMAGE"
+                                      ).length
+                                    }{" "}
+                                    hình ảnh
+                                  </span>
+                                  {review.medias.filter(
+                                    (m) => m.type === "VIDEO"
+                                  ).length > 0 && (
+                                    <>
+                                      <Video className="h-4 w-4 ml-2" />
+                                      <span>
+                                        {
+                                          review.medias.filter(
+                                            (m) => m.type === "VIDEO"
+                                          ).length
+                                        }{" "}
+                                        video
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                  {review.medias
+                                    .slice(0, 4)
+                                    .map((media, index) => (
+                                      <div
+                                        key={index}
+                                        className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group hover:opacity-80 transition-opacity"
+                                        onClick={() =>
+                                          openMediaGallery(review.medias, index)
+                                        }
+                                      >
+                                        <Image
+                                          src={media.url || "/placeholder.svg"}
+                                          alt={`Review media ${index + 1}`}
+                                          fill
+                                          sizes=""
+                                          className="object-cover"
+                                        />
+                                        {media.type === "VIDEO" && (
+                                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                            <Play className="h-8 w-8 text-white" />
+                                          </div>
+                                        )}
+                                        {index === 3 &&
+                                          review.medias.length > 4 && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white font-semibold">
+                                              +{review.medias.length - 4}
+                                            </div>
+                                          )}
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -752,19 +823,19 @@ export default function ProductDetailContent({
                       <h3 className="text-2xl font-bold mb-6">
                         Hướng dẫn bảo quản
                       </h3>
-                      {/* <ul className="space-y-4">
-                        {product.careInstructions.map((instruction, index) => (
+                      <ul className="space-y-4">
+                        {careInstructions.map((instruction, index) => (
                           <li
                             key={index}
                             className="flex items-start space-x-3"
                           >
                             <Check className="h-6 w-6 text-blue-500 mt-0.5 flex-shrink-0" />
                             <span className="text-muted-foreground leading-relaxed">
-                              {instruction}
+                              {instruction.value}
                             </span>
                           </li>
                         ))}
-                      </ul> */}
+                      </ul>
                     </div>
                     <div className="space-y-6">
                       <h3 className="text-2xl font-bold mb-6">
@@ -805,87 +876,74 @@ export default function ProductDetailContent({
           </Tabs>
         </div>
 
-        {/* Related Products */}
-        {/* <div className="mt-20">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Sản Phẩm Liên Quan</h2>
-            <p className="text-lg text-muted-foreground">
-              Khám phá thêm những sản phẩm tương tự
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {relatedProducts.map((relatedProduct) => (
-              <Card
-                key={relatedProduct.id}
-                className="group cursor-pointer hover:shadow-xl transition-all duration-500 border-2 rounded-3xl overflow-hidden"
-                onClick={() =>
-                  (window.location.href = `/product/${relatedProduct.id}`)
-                }
-              >
-                <CardContent className="p-0">
-                  <div className="relative overflow-hidden">
-                    <Image
-                      src={relatedProduct.image || "/placeholder.svg"}
-                      alt={relatedProduct.name}
-                      width={300}
-                      height={400}
-                      className="object-cover w-full h-80 group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <Badge className="absolute top-4 left-4 bg-destructive text-destructive-foreground">
-                      {relatedProduct.originalPrice ? "Sale" : "New"}
-                    </Badge>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm hover:bg-background rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log("Add to favorites:", relatedProduct);
-                      }}
-                    >
-                      <Heart className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="p-6 space-y-3">
-                    <Badge variant="outline">{relatedProduct.category}</Badge>
-                    <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                      {relatedProduct.name}
-                    </h3>
-                    <div className="flex items-center space-x-2">
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="ml-1 text-sm font-medium">
-                          {relatedProduct.rating}
-                        </span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        ({relatedProduct.reviews})
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-bold text-primary text-lg">
-                            {relatedProduct.price}₫
-                          </span>
-                          {relatedProduct.originalPrice && (
-                            <span className="text-sm text-muted-foreground line-through">
-                              {relatedProduct.originalPrice}₫
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <Button size="sm" className="rounded-xl">
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div> */}
+        <RelatedProduct categories={cateArr} />
       </div>
+      {/* Media Gallery Dialog */}
+      <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
+        {/* <DialogHeader>
+          <DialogTitle>Hiển thị</DialogTitle>
+        </DialogHeader>
+        <DialogDescription>Bạn đang xem hình ảnh và video</DialogDescription> */}
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <div className="relative">
+            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+              {selectedReviewMedia[selectedMediaIndex]?.type === "VIDEO" ? (
+                <div className="flex items-center justify-center h-full text-white">
+                  <Play className="h-16 w-16" />
+                  <span className="ml-4 text-lg">Video Player</span>
+                </div>
+              ) : (
+                <Image
+                  src={
+                    selectedReviewMedia[selectedMediaIndex]?.url ||
+                    "/placeholder.svg"
+                  }
+                  alt="Review media"
+                  fill
+                  className="object-contain"
+                />
+              )}
+            </div>
+
+            {/* Navigation */}
+            {selectedReviewMedia.length > 1 && (
+              <>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                  onClick={() =>
+                    setSelectedMediaIndex(
+                      (prev) =>
+                        (prev - 1 + selectedReviewMedia.length) %
+                        selectedReviewMedia.length
+                    )
+                  }
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                  onClick={() =>
+                    setSelectedMediaIndex(
+                      (prev) => (prev + 1) % selectedReviewMedia.length
+                    )
+                  }
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </>
+            )}
+
+            {/* Counter */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full text-sm">
+              {selectedMediaIndex + 1} / {selectedReviewMedia.length}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

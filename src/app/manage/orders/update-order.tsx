@@ -19,11 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useGetOrder, useUpdateOrderMutation } from "@/app/queries/useOrder";
+import {
+  useGetOrderManage,
+  useUpdateOrderMutation,
+} from "@/app/queries/useOrder";
 import { toast } from "@/hooks/use-toast";
 import { handleHttpErrorApi } from "@/lib/utils";
-import { Package, ArrowRight, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Package } from "lucide-react";
 import {
   OrderStatus,
   OrderStatusColors,
@@ -54,8 +56,8 @@ export default function UpdateOrderStatus({
     data: getOrder,
     isLoading,
     isError,
-  } = useGetOrder({
-    id: id || 0,
+  } = useGetOrderManage({
+    orderId: id || 0,
     enabled: Boolean(id),
   });
 
@@ -132,23 +134,11 @@ export default function UpdateOrderStatus({
   ): OrderStatusType[] => {
     switch (currentStatus) {
       case OrderStatus.PENDING_PAYMENT:
-        return [
-          OrderStatus.PENDING_PAYMENT,
-          OrderStatus.PENDING_PICKUP,
-          OrderStatus.CANCELLED,
-        ];
+        return [OrderStatus.PENDING_PICKUP, OrderStatus.CANCELLED];
       case OrderStatus.PENDING_PICKUP:
-        return [
-          OrderStatus.PENDING_PICKUP,
-          OrderStatus.PENDING_DELIVERY,
-          OrderStatus.CANCELLED,
-        ];
+        return [OrderStatus.PENDING_DELIVERY, OrderStatus.CANCELLED];
       case OrderStatus.PENDING_DELIVERY:
-        return [
-          OrderStatus.PENDING_DELIVERY,
-          OrderStatus.DELIVERED,
-          OrderStatus.RETURNED,
-        ];
+        return [OrderStatus.DELIVERED, OrderStatus.RETURNED];
       case OrderStatus.DELIVERED:
         return [OrderStatus.DELIVERED, OrderStatus.RETURNED];
       case OrderStatus.RETURNED:
@@ -279,7 +269,7 @@ export default function UpdateOrderStatus({
                         name="status"
                         render={({ field }) => (
                           <Select
-                            value={field.value || ""}
+                            value={field.value}
                             onValueChange={field.onChange}
                           >
                             <SelectTrigger>

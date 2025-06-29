@@ -9,6 +9,8 @@ import { ProductType } from "@/shared/models/shared-product.model";
 import { useGetProduct } from "@/app/queries/useProduct";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
+import { useListReview } from "@/app/queries/useReview";
+import Rating from "@/components/rating";
 
 interface ProductCardProps {
   product: ProductType;
@@ -25,7 +27,10 @@ export default function ProductCard({
     id: product.id || 0,
     enabled: Boolean(product.id),
   });
-  const getProductDetail = data?.payload;
+  if (!data) {
+    return;
+  }
+  const getProductDetail = data.payload;
   return (
     <Link href={`/product/${product.id}`}>
       <Card
@@ -73,15 +78,7 @@ export default function ProductCard({
             <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
               {product.name}
             </h3>
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="ml-1 text-sm font-medium">5</span>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                (100 đánh giá)
-              </span>
-            </div>
+            <Rating productId={product.id} />
           </div>
           <div className="flex items-center justify-between">
             <div className="space-y-1">

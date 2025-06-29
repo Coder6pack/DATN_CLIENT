@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useGetOrder } from "@/app/queries/useOrder";
+import { useGetOrder, useGetOrderManage } from "@/app/queries/useOrder";
 import { formatCurrency } from "@/lib/utils";
 import {
   Package,
@@ -40,8 +40,8 @@ export default function OrderDetail({ id, setId }: OrderDetailProps) {
     data: orderDetail,
     isLoading,
     isError,
-  } = useGetOrder({
-    id: id || 0,
+  } = useGetOrderManage({
+    orderId: id || 0,
     enabled: Boolean(id),
   });
 

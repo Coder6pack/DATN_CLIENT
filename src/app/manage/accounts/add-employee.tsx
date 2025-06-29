@@ -70,15 +70,10 @@ export default function AddEmployee() {
         };
         const result = await addAccountMutation.mutateAsync(body);
         toast({
-          description: "Them tai khoan thành công",
+          description: "Thêm tài khoản thành công",
         });
         setOpen(false);
       }
-      await addAccountMutation.mutateAsync(body);
-      toast({
-        description: "Them tai khoan thành công",
-      });
-      setOpen(false);
     } catch (error) {
       handleHttpErrorApi({
         error,

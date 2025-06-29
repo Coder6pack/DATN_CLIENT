@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import orderApiRequest from "../apiRequests/order";
 import {
   GetOrderListQueryType,
+  GetOrderParamsType,
   UpdateOrderBodyType,
 } from "@/schemaValidations/order.model";
 import { PaginationQueryType } from "@/shared/models/request.model";
@@ -44,6 +45,20 @@ export const useGetOrder = ({
   return useQuery({
     queryKey: ["orders", id],
     queryFn: () => orderApiRequest.getOrder(id),
+    enabled,
+  });
+};
+
+export const useGetOrderManage = ({
+  orderId,
+  enabled,
+}: {
+  orderId: number;
+  enabled: boolean;
+}) => {
+  return useQuery({
+    queryKey: ["orders", orderId],
+    queryFn: () => orderApiRequest.getOrderManage({ orderId }),
     enabled,
   });
 };

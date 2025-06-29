@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Settings, Package, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,27 @@ import { useAccountMe } from "@/app/queries/useAccount";
 import ChangeGuestPassword from "./change-guest-password";
 import { useListOrder } from "@/app/queries/useOrder";
 import { statusConfig } from "@/constants/order.constant";
+import { useSocket } from "@/lib/socket";
 
 export default function ProfileContent() {
   const [selectedOrderId, setSelectedOrderId] = useState<number>(0);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const { socket } = useSocket();
   const { data } = useAccountMe();
-  const { data: listOrder } = useListOrder({ page: 1, limit: 100 });
+  const { data: listOrder, refetch } = useListOrder({ page: 1, limit: 100 });
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleUpdateOrder = (paymentData: { status: string }) => {
+      if (paymentData.status === "success") {
+        refetch();
+      }
+    };
+    socket.on("orders", handleUpdateOrder);
+    return () => {
+      socket.off("orders", handleUpdateOrder);
+    };
+  }, [socket, refetch]);
   if (!data || !listOrder) {
     return <div className="text-center">Loading...</div>;
   }
@@ -141,7 +156,10 @@ export default function ProfileContent() {
                         />
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-bold text-lg">{order.id}</h4>
+                            <h4 className="text-lg">
+                              <span className="font-bold">Mã đơn hàng:</span>
+                              <span className="font-bold"> DH{order.id}</span>
+                            </h4>
                             <Badge
                               className={`${
                                 statusConfig[order.status].color
@@ -153,9 +171,7 @@ export default function ProfileContent() {
                           </div>
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                             <span>
-                              {new Date(order.createdAt).toLocaleDateString(
-                                "vi-VN"
-                              )}
+                              {new Date(order.createdAt).toDateString()}
                             </span>
                             <span>•</span>
                             <span>
@@ -167,11 +183,13 @@ export default function ProfileContent() {
                             </span>
                             <span>•</span>
                             <span className="font-semibold text-primary">
-                              {order.items.reduce(
-                                (sum, item) =>
-                                  sum + item.quantity * item.skuPrice,
-                                0
-                              )}
+                              {order.items
+                                .reduce(
+                                  (sum, item) =>
+                                    sum + item.quantity * item.skuPrice,
+                                  0
+                                )
+                                .toLocaleString()}
                               ₫
                             </span>
                           </div>

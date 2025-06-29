@@ -8,57 +8,31 @@ import {
   Minus,
   Plus,
   X,
-  Heart,
   ArrowRight,
   Truck,
   Shield,
   RotateCcw,
-  Tag,
   CreditCard,
-  MapPin,
   Gift,
-  Percent,
   Trash2,
+  Heart,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProductType } from "@/shared/models/shared-product.model";
 import {
-  useAddCartMutation,
   useDeleteCartMutation,
   useListCart,
   useUpdateCartMutation,
 } from "@/app/queries/useCart";
-import { UpdateCartItemBodyType } from "@/schemaValidations/cart.model";
 import { toast } from "@/hooks/use-toast";
 import { parseVariants } from "@/lib/utils";
-
-interface RelatedProduct {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  originalPrice?: number;
-  rating: number;
-  reviews: number;
-  category: string;
-}
-
-interface Variant {
-  value: string; // Tên biến thể (ví dụ: "Màu", "Size")
-  options: string[]; // Giá trị của biến thể (ví dụ: ["Trắng"], ["XL"])
-}
-
-interface Sku {
-  value: string; // Ví dụ: "Trắng-XL"
-  product: {
-    variants: Variant[];
-  };
-}
+import { useListProducts } from "@/app/queries/useProduct";
 interface CartContentProps {
   initialCartItems: { product: ProductType; quantity: number }[];
   removeFromCart: (productId: number) => void;
@@ -74,15 +48,39 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
     code: string;
     discount: number;
   } | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Carousel settings
+  const itemsPerSlide = {
+    mobile: 1,
+    tablet: 2,
+    desktop: 4,
+  };
+
+  const getItemsPerSlide = () => {
+    if (typeof window !== "undefined") {
+      if (window.innerWidth < 640) return itemsPerSlide.mobile;
+      if (window.innerWidth < 1024) return itemsPerSlide.tablet;
+      return itemsPerSlide.desktop;
+    }
+    return itemsPerSlide.desktop;
+  };
+
+  const [itemsToShow, setItemsToShow] = useState(getItemsPerSlide());
+
   const { mutateAsync } = useUpdateCartMutation();
   const { mutateAsync: deleteCartMutation } = useDeleteCartMutation();
   const { data, isLoading } = useListCart({ page: 1, limit: 10 });
+  const { data: listProduct } = useListProducts({ page: 1, limit: 10 });
   if (!data) {
     return null;
   }
   const listCart =
     data.payload.data.length === 0 ? [] : data.payload.data[0].cartItems;
-
+  if (!listProduct) {
+    return;
+  }
+  const products = listProduct.payload.data;
   const handleUpdateCart = async ({
     id,
     skuId,
@@ -94,7 +92,15 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
   }) => {
     const result = await mutateAsync({ id, skuId, quantity });
   };
+  const maxSlides = Math.ceil(products.length / itemsToShow);
 
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % maxSlides);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + maxSlides) % maxSlides);
+  };
   const getAllCart = listCart.map((cart) => cart.id);
 
   const handleDeleteToggleCart = async (cartItem: number[]) => {
@@ -137,17 +143,17 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
     setSelectedItems([]);
   };
 
-  const applyCoupon = () => {
-    if (couponCode.toLowerCase() === "save20") {
-      setAppliedCoupon({ code: couponCode, discount: 20 });
-      setCouponCode("");
-    } else if (couponCode.toLowerCase() === "welcome10") {
-      setAppliedCoupon({ code: couponCode, discount: 10 });
-      setCouponCode("");
-    } else {
-      alert("Mã giảm giá không hợp lệ");
-    }
-  };
+  // const applyCoupon = () => {
+  //   if (couponCode.toLowerCase() === "save20") {
+  //     setAppliedCoupon({ code: couponCode, discount: 20 });
+  //     setCouponCode("");
+  //   } else if (couponCode.toLowerCase() === "welcome10") {
+  //     setAppliedCoupon({ code: couponCode, discount: 10 });
+  //     setCouponCode("");
+  //   } else {
+  //     alert("Mã giảm giá không hợp lệ");
+  //   }
+  // };
 
   const removeCoupon = () => {
     setAppliedCoupon(null);
@@ -168,7 +174,8 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
     ? (subtotal * appliedCoupon.discount) / 100
     : 0;
   const shipping = subtotal >= 500000 ? 0 : 30000;
-  const total = subtotal - couponDiscount + shipping;
+  // const total = subtotal - couponDiscount + shipping;
+  const total = subtotal;
 
   if (isLoading) {
     return (
@@ -413,12 +420,8 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
             </Card>
           ))}
         </div>
-      </div>
-
-      {/* Order Summary */}
-      <div className="space-y-8">
         {/* Features */}
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 rounded-2xl">
             <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
               <Truck className="h-6 w-6 text-white" />
@@ -455,9 +458,12 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
             </div>
           </div>
         </div>
+      </div>
 
+      {/* Order Summary */}
+      <div className="space-y-8">
         {/* Coupon */}
-        <Card className="border-0 shadow-lg rounded-3xl overflow-hidden bg-card transition-colors duration-300">
+        {/* <Card className="border-0 shadow-lg rounded-3xl overflow-hidden bg-card transition-colors duration-300">
           <CardHeader className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-900 pb-4">
             <CardTitle className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
@@ -528,7 +534,7 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Order Summary */}
         <Card className="border-0 shadow-xl rounded-3xl overflow-hidden bg-card transition-colors duration-300">
@@ -574,26 +580,22 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
               <div className="flex justify-between text-lg">
                 <span className="text-foreground">Phí vận chuyển</span>
                 <span
-                  className={`font-semibold ${
-                    shipping === 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-foreground"
-                  }`}
+                  className={"font-semibold text-green-600 dark:text-green-400"}
                 >
-                  {shipping === 0
+                  Miễn phí
+                  {/* {shipping === 0
                     ? "Miễn phí"
-                    : `${shipping.toLocaleString()}₫`}
+                    : `${shipping.toLocaleString()}₫`} */}
                 </span>
               </div>
 
               {shipping > 0 && (
                 <div className="text-sm text-blue-600 dark:text-blue-400 p-4 bg-blue-50 dark:bg-blue-950 rounded-2xl border border-blue-200 dark:border-blue-800">
                   <Gift className="h-4 w-4 inline mr-2" />
-                  Mua thêm{" "}
-                  <span className="font-bold">
+                  Chúc mừng bạn đã được shop miễn phí vận chuyển
+                  {/* <span className="font-bold">
                     {(500000 - subtotal).toLocaleString()}₫
-                  </span>{" "}
-                  để được miễn phí vận chuyển
+                  </span>{" "} */}
                 </div>
               )}
             </div>
@@ -616,16 +618,7 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
               </Link>
             </Button>
 
-            <div className="text-center">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full rounded-2xl border-2"
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                Kiểm tra địa chỉ giao hàng
-              </Button>
-            </div>
+            <div className="text-center"></div>
           </CardContent>
         </Card>
 
@@ -648,7 +641,7 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
       </div>
 
       {/* Related Products */}
-      <div className="lg:col-span-3 mt-20">
+      {/* <div className="lg:col-span-3 mt-20">
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
             Có thể bạn cũng thích
@@ -658,7 +651,7 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* {relatedProducts.map((product) => (
+          {products.map((product) => (
             <Card
               key={product.id}
               className="group cursor-pointer hover:shadow-2xl transition-all duration-500 border-0 shadow-lg rounded-3xl overflow-hidden hover:-translate-y-2 bg-card"
@@ -666,15 +659,12 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
             >
               <div className="relative overflow-hidden">
                 <Image
-                  src={product.image}
+                  src={product.images[0]}
                   alt={product.name}
                   width={300}
                   height={400}
                   className="object-cover w-full h-80 group-hover:scale-110 transition-transform duration-700"
                 />
-                <Badge className="absolute top-4 bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
-                  {product.originalPrice ? "Sale" : "New"}
-                </Badge>
                 <Button
                   variant="secondary"
                   size="icon"
@@ -687,9 +677,6 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
                 </Button>
               </div>
               <div className="p-6 space-y-4">
-                <Badge variant="outline" className="rounded-full px-3 py-1">
-                  {product.category}
-                </Badge>
                 <h3 className="font-bold text-lg line-clamp-2 group-hover:text-primary transition-colors text-foreground">
                   {product.name}
                 </h3>
@@ -697,11 +684,11 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
                       <span className="font-bold text-primary text-xl">
-                        {product.price.toLocaleString()}₫
+                        {product.virtualPrice.toLocaleString()}₫
                       </span>
-                      {product.originalPrice && (
+                      {product.basePrice && (
                         <span className="text-sm text-muted-foreground line-through">
-                          {product.originalPrice.toLocaleString()}₫
+                          {(product.virtualPrice + 30000).toLocaleString()}₫
                         </span>
                       )}
                     </div>
@@ -713,7 +700,143 @@ export default function CartContent({ removeFromCart }: CartContentProps) {
                 </div>
               </div>
             </Card>
-          ))} */}
+          ))}
+        </div>
+      </div> */}
+      {/* Related Products Carousel */}
+      <div className="lg:col-span-3 mt-20">
+        <div className="text-center mb-16">
+          <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+            Có thể bạn cũng thích
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Khám phá thêm những sản phẩm tuyệt vời khác
+          </p>
+        </div>
+
+        {/* Carousel Container */}
+        <div className="relative px-16">
+          {/* Left Navigation Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={prevSlide}
+            disabled={currentSlide === 0}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full border-2 bg-white/95 backdrop-blur-sm hover:bg-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed group"
+          >
+            <ChevronLeft className="h-6 w-6 text-gray-600 group-hover:text-primary transition-colors" />
+          </Button>
+
+          {/* Right Navigation Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={nextSlide}
+            disabled={currentSlide === maxSlides - 1}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full border-2 bg-white/95 backdrop-blur-sm hover:bg-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed group"
+          >
+            <ChevronRight className="h-6 w-6 text-gray-600 group-hover:text-primary transition-colors" />
+          </Button>
+
+          {/* Carousel Track */}
+          <div className="overflow-hidden rounded-3xl">
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{
+                transform: `translateX(-${currentSlide * 100}%)`,
+                width: `${maxSlides * 100}%`,
+              }}
+            >
+              {Array.from({ length: maxSlides }).map((_, slideIndex) => (
+                <div
+                  key={slideIndex}
+                  className="flex space-x-6 px-3"
+                  style={{ width: `${100 / maxSlides}%` }}
+                >
+                  {products
+                    .slice(
+                      slideIndex * itemsToShow,
+                      (slideIndex + 1) * itemsToShow
+                    )
+                    .map((product) => (
+                      <div key={product.id} className="flex-1 min-w-0 p-2">
+                        <Card
+                          className="group cursor-pointer hover:shadow-xl transition-all duration-500 border-0 shadow-md rounded-3xl overflow-hidden hover:-translate-y-2 bg-card h-full"
+                          onClick={() =>
+                            (window.location.href = `/product/${product.id}`)
+                          }
+                        >
+                          <div className="relative overflow-hidden">
+                            <Image
+                              src={product.images[0] || "/placeholder.svg"}
+                              alt={product.name}
+                              width={300}
+                              height={300}
+                              className="object-cover w-full h-64 group-hover:scale-110 transition-transform duration-700"
+                            />
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log("Add to favorites:", product);
+                              }}
+                            >
+                              <Heart className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="p-6 space-y-4 flex-1 flex flex-col">
+                            <h3 className="font-bold text-lg line-clamp-2 group-hover:text-primary transition-colors text-foreground flex-1">
+                              {product.name}
+                            </h3>
+                            <div className="flex items-center justify-between mt-auto">
+                              <div className="space-y-1">
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-bold text-primary text-xl">
+                                    {product.virtualPrice.toLocaleString()}₫
+                                  </span>
+                                  {product.basePrice && (
+                                    <span className="text-sm text-muted-foreground line-through">
+                                      {(
+                                        product.virtualPrice + 30000
+                                      ).toLocaleString()}
+                                      ₫
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="rounded-2xl shadow-md"
+                              >
+                                <ShoppingBag className="h-4 w-4 mr-1" />
+                                Thêm
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+                    ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Slide Indicators */}
+          <div className="flex justify-center space-x-2 mt-8">
+            {Array.from({ length: maxSlides }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  index === currentSlide
+                    ? "bg-primary scale-125 shadow-lg"
+                    : "bg-muted-foreground/30 hover:bg-muted-foreground/50 hover:scale-110"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

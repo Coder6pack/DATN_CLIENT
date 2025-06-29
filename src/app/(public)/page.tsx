@@ -8,50 +8,20 @@ import Newsletter from "@/components/new-sletter";
 import { useListSlideShow } from "../queries/useSlideShow";
 import { useListBrand } from "../queries/useBrand";
 import { useListCategories } from "../queries/useCategory";
-import { CategoryType } from "@/schemaValidations/category.model";
 import { useListProducts } from "../queries/useProduct";
-import { ProductType } from "@/shared/models/shared-product.model";
-import { useAppContext } from "@/components/app-provider";
 
 export default function HomePage() {
   // State for all data
-  const { addToCart } = useAppContext();
   const { data: slideShows } = useListSlideShow();
   const { data: brands } = useListBrand();
   const { data: categories } = useListCategories();
-  const { data: products } = useListProducts({ page: 1, limit: 10 });
 
-  if (!slideShows || !brands || !categories || !products) {
+  if (!slideShows || !brands || !categories) {
     return;
   }
-  // Event handlers
-  const handleSearch = (query: string) => {
-    console.log("Searching for:", query);
-    // Implement search logic
-  };
-
-  const handleCategoryClick = (category: CategoryType) => {
-    console.log("Category clicked:", category);
-    // Navigate to category page
-  };
-  const handleAddToCart = (product: ProductType) => {
-    addToCart(product);
-  };
-
-  const handleToggleFavorite = (product: ProductType) => {
-    console.log("Toggle favorite:", product);
-    // Toggle favorite logic
-  };
-
   const handleViewAllProducts = () => {
     console.log("View all products");
     // Navigate to products page
-  };
-
-  const handleNewsletterSubscribe = async (email: string) => {
-    console.log("Newsletter subscribe:", email);
-    // Newsletter subscription logic
-    return new Promise((resolve) => setTimeout(resolve, 1000));
   };
 
   return (
@@ -60,17 +30,9 @@ export default function HomePage() {
 
       <BrandsSection brands={brands.payload.data} />
 
-      <CategoriesCarousel
-        categories={categories.payload.data}
-        onCategoryClick={handleCategoryClick}
-      />
+      <CategoriesCarousel categories={categories.payload.data} />
 
-      <ProductsSection
-        products={products.payload.data}
-        onToggleFavorite={handleToggleFavorite}
-        onViewAll={handleViewAllProducts}
-      />
-
+      <ProductsSection onViewAll={handleViewAllProducts} />
       <Newsletter />
     </div>
   );

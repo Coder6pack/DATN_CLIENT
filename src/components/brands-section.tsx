@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Brand } from "@/types";
 import { BrandType } from "@/shared/models/shared-brand.model";
+import Link from "next/link";
+import { useListBrand } from "@/app/queries/useBrand";
 
 interface BrandsSectionProps {
   brands: BrandType[];
@@ -54,7 +56,6 @@ export default function BrandsSection({
       return () => clearTimeout(timer);
     }
   }, [isTransitioning]);
-
   const nextBrands = () => {
     setCurrentIndex((prev) => prev + itemsPerView);
   };
@@ -100,15 +101,21 @@ export default function BrandsSection({
                     minWidth: `${100 / itemsPerView}%`,
                   }} // Each item takes up its share of the visible width
                 >
-                  <div className="flex items-center justify-center p-4 sm:p-8 bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border border-border hover:border-primary/50">
-                    <Image
-                      src={brand.logo || "/placeholder.svg"}
-                      alt={brand.name}
-                      width={120}
-                      height={80}
-                      className="object-contain filter grayscale hover:grayscale-0 transition-all duration-300 max-w-full h-auto"
-                    />
-                  </div>
+                  <Link
+                    href={`/products?page=${1}&limit=${9}&orderBy=desc&sortBy=createdAt&brandId=${
+                      brand.id
+                    }`}
+                  >
+                    <div className="flex items-center justify-center p-4 sm:p-8 bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border border-border hover:border-primary/50">
+                      <Image
+                        src={brand.logo || "/placeholder.svg"}
+                        alt={brand.name}
+                        width={120}
+                        height={80}
+                        className="object-contain filter grayscale hover:grayscale-0 transition-all duration-300 max-w-full h-auto"
+                      />
+                    </div>
+                  </Link>
                 </div>
               ))}
             </div>

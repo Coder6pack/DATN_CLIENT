@@ -7,23 +7,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProductType } from "@/shared/models/shared-product.model";
 import Link from "next/link";
-import { useAppContext } from "./app-provider";
+import Rating from "./rating";
+import { useListProducts } from "@/app/queries/useProduct";
 
 interface ProductsSectionProps {
-  products: ProductType[];
   title?: string;
   showViewAll?: boolean;
-  onToggleFavorite?: (product: ProductType) => void;
   onViewAll?: () => void;
 }
 
 export default function ProductsSection({
-  products,
   title = "Sản Phẩm Nổi Bật",
   showViewAll = true,
-  onToggleFavorite,
   onViewAll,
 }: ProductsSectionProps) {
+  const { data: listProduct } = useListProducts({ page: 1, limit: 10 });
+  if (!listProduct) return;
+  const products = listProduct.payload.data;
   // Lọc sản phẩm hợp lệ
   const validProducts = products.filter((product) => product && product.id);
 
@@ -67,7 +67,6 @@ export default function ProductsSection({
                       className="absolute top-4 right-4 bg-white/80 hover:bg-white"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onToggleFavorite?.(product);
                       }}
                     >
                       <Heart className="h-4 w-4" />
@@ -77,12 +76,7 @@ export default function ProductsSection({
                     <h3 className="text-lg font-semibold mb-2">
                       {product.name}
                     </h3>
-                    <div className="flex items-center mb-3">
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="ml-1 text-sm font-medium">{5}</span>
-                      </div>
-                    </div>
+                    <Rating productId={product.id} />
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="text-xl font-bold text-primary">

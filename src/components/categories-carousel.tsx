@@ -7,24 +7,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Category } from "@/types";
 import { CategoryType } from "@/schemaValidations/category.model";
+import { useRouter } from "next/navigation";
 
 interface CategoriesCarouselProps {
   categories: CategoryType[];
   title?: string;
   itemsPerView?: number;
-  onCategoryClick?: (category: CategoryType) => void;
 }
 
 export default function CategoriesCarousel({
   categories,
   title = "Khám Phá Danh Mục",
   itemsPerView = 3,
-  onCategoryClick,
 }: CategoriesCarouselProps) {
   const bufferSize = Math.min(itemsPerView, categories.length); // Number of items to duplicate at each end
   const [currentIndex, setCurrentIndex] = useState(bufferSize); // Start at the first real category
   const [isTransitioning, setIsTransitioning] = useState(true);
 
+  const router = useRouter();
   // Create extended categories array for seamless looping
   const extendedCategories = useMemo(() => {
     if (categories.length === 0) return [];
@@ -64,6 +64,11 @@ export default function CategoriesCarousel({
 
   const prevCategory = () => {
     setCurrentIndex((prev) => prev - itemsPerView);
+  };
+  const onCategoryClick = (categoryId: number) => {
+    router.push(
+      `/products?page=${1}&limit=${9}&orderBy=desc&sortBy=createdAt&categories=${categoryId}`
+    );
   };
 
   if (categories.length === 0) {
@@ -114,7 +119,7 @@ export default function CategoriesCarousel({
                 >
                   <Card
                     className="group cursor-pointer border-0 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 bg-card overflow-hidden"
-                    onClick={() => onCategoryClick?.(category)}
+                    onClick={() => onCategoryClick(category.id)}
                   >
                     <CardContent className="p-0 relative">
                       <div className="relative overflow-hidden">
