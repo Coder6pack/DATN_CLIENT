@@ -25,7 +25,6 @@ export default function DashboardMain() {
   const orderCount = data.payload.data.orderCount ?? 0;
   const servingOrderCount = data.payload.data.servingOrderCount ?? 0;
   const revenueByDate = data.payload.data.revenueByDate ?? [];
-  const dishIndicator = data.payload.data.orderIndicator ?? [];
   const totalProfit = data.payload.data.totalProfit ?? 0;
 
   const resetDateFilter = () => {
