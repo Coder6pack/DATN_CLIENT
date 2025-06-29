@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useGetOrder } from "@/app/queries/useOrder";
+import { useGetOrder, useGetOrderManage } from "@/app/queries/useOrder";
 import { formatCurrency } from "@/lib/utils";
 import {
   Package,
@@ -40,8 +40,8 @@ export default function OrderDetail({ id, setId }: OrderDetailProps) {
     data: orderDetail,
     isLoading,
     isError,
-  } = useGetOrder({
-    id: id || 0,
+  } = useGetOrderManage({
+    orderId: id || 0,
     enabled: Boolean(id),
   });
 
@@ -243,10 +243,7 @@ export default function OrderDetail({ id, setId }: OrderDetailProps) {
                       className="flex items-center gap-4 p-4 border rounded-lg"
                     >
                       <Avatar className="w-16 h-16 rounded-md">
-                        <AvatarImage
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.productName}
-                        />
+                        <AvatarImage src={item.image} alt={item.productName} />
                         <AvatarFallback className="rounded-md">
                           {item.productName.charAt(0)}
                         </AvatarFallback>

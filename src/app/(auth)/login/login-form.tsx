@@ -15,13 +15,32 @@ import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLoginMutation } from "@/app/queries/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { handleHttpErrorApi } from "@/lib/utils";
+import { decodeToken, handleHttpErrorApi } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoginBodySchema, LoginBodyType } from "@/schemaValidations/auth.model";
 import { useAppContext } from "@/components/app-provider";
 import { useEffect } from "react";
 import Link from "next/link";
+import envConfig from "@/config";
 
+const getOauthGoogleUrl = () => {
+  const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+  const options = {
+    redirect_uri: envConfig.NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URI,
+    client_id: envConfig.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+    access_type: "offline",
+    response_type: "code",
+    prompt: "consent",
+    scope: [
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email",
+    ].join(" "),
+  };
+  const qs = new URLSearchParams(options);
+  return `${rootUrl}?${qs.toString()}`;
+};
+const googleOauthUrl = getOauthGoogleUrl();
+console.log("googleOauthUrl", googleOauthUrl);
 export default function LoginForm() {
   const loginMutation = useLoginMutation();
   const searchParams = useSearchParams();
@@ -44,11 +63,25 @@ export default function LoginForm() {
     if (loginMutation.isPending) return;
     try {
       const result = await loginMutation.mutateAsync(data);
-      toast({
-        description: "Login successfully",
-      });
-      setIsAuth(true);
-      route.push("/manage/dashboard");
+      const role = decodeToken(result.payload.refreshToken).roleName;
+      if (result) {
+        if (role === "Admin") {
+          toast({
+            description: "Login Admin successfully",
+          });
+          setIsAuth(true);
+          route.refresh();
+          route.push("/manage/dashboard");
+        }
+        if (role === "Client") {
+          toast({
+            description: "Login Guest successfully",
+          });
+          route.refresh();
+          setIsAuth(true);
+          route.push("/");
+        }
+      }
     } catch (error) {
       handleHttpErrorApi({ error, setError: form.setError });
     }
@@ -114,9 +147,11 @@ export default function LoginForm() {
               <Button type="submit" className="w-full">
                 Đăng nhập
               </Button>
-              <Button variant="outline" className="w-full" type="button">
-                Đăng nhập bằng Google
-              </Button>
+              <Link href={googleOauthUrl}>
+                <Button variant="outline" className="w-full" type="button">
+                  Đăng nhập bằng Google
+                </Button>
+              </Link>
             </div>
           </form>
         </Form>

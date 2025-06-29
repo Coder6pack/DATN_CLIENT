@@ -197,12 +197,18 @@
 // export default http;
 
 import envConfig from "@/config";
-import { normalizePath } from "@/lib/utils";
+import {
+  normalizePath,
+  setAccessTokenToLocalStorage,
+  setRefreshTokenToLocalStorage,
+} from "@/lib/utils";
 import { LoginResType } from "@/schemaValidations/auth.model";
+import { GetProductsQueryType } from "@/schemaValidations/product.model";
 import { redirect } from "next/navigation";
 
 type CustomOptions = Omit<RequestInit, "method"> & {
   baseUrl?: string | undefined;
+  params?: GetProductsQueryType;
 };
 
 const ENTITY_ERROR_STATUS = 422;
@@ -288,7 +294,28 @@ const request = async <Response>(
       ? envConfig.NEXT_PUBLIC_API_ENDPOINT
       : options.baseUrl;
 
-  const fullUrl = `${baseUrl}/${normalizePath(url)}`;
+  let fullUrl = `${baseUrl}/${normalizePath(url)}`;
+  // if (options?.params) {
+  //   const searchParams = new URLSearchParams();
+  //   Object.entries(options.params).forEach(([key, value]) => {
+  //     if (value === undefined) return; // Bỏ qua các giá trị undefined
+  //     if (Array.isArray(value)) {
+  //       // Xử lý mảng: thêm từng phần tử vào query string
+  //       value.forEach((item) => {
+  //         if (item !== undefined) {
+  //           searchParams.append(key, String(item));
+  //         }
+  //       });
+  //     } else {
+  //       // Xử lý các giá trị đơn
+  //       searchParams.append(key, String(value));
+  //     }
+  //   });
+  //   const queryString = searchParams.toString();
+  //   if (queryString) {
+  //     fullUrl += `?${queryString}`;
+  //   }
+  // }
   const res = await fetch(fullUrl, {
     ...options,
     headers: {
@@ -353,6 +380,13 @@ const request = async <Response>(
       const { accessToken, refreshToken } = payload as LoginResType;
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
+    } else if ("api/auth/token" === normalizeUrl) {
+      const { accessToken, refreshToken } = payload as {
+        accessToken: string;
+        refreshToken: string;
+      };
+      setAccessTokenToLocalStorage(accessToken);
+      setRefreshTokenToLocalStorage(refreshToken);
     } else if (normalizeUrl === "api/auth/logout") {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");

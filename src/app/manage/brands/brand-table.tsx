@@ -83,7 +83,7 @@ export const columns: ColumnDef<BrandType>[] = [
       <div>
         <Avatar className="aspect-square w-[100px] h-[100px] rounded-md object-cover">
           <AvatarImage
-            src={row.getValue("logo")}
+            src={row.getValue("logo") || "/avatar.jpg"}
             width={"100px"}
             height={"100px"}
           />

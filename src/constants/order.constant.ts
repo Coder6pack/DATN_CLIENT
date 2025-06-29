@@ -1,3 +1,5 @@
+import { AlertCircle, CheckCircle, Clock, Package, Truck } from "lucide-react";
+
 export const OrderStatus = {
   PENDING_PAYMENT: "PENDING_PAYMENT",
   PENDING_PICKUP: "PENDING_PICKUP",
@@ -25,4 +27,42 @@ export const OrderStatusColors = {
   [OrderStatus.CANCELLED]: "bg-red-100 text-red-800",
 } as const;
 
+export const statusConfig = {
+  PENDING_PAYMENT: {
+    label: "Chờ thanh toán",
+    color: "bg-yellow-500",
+    icon: Clock,
+    description: "Đơn hàng đang chờ được xác nhận",
+  },
+  PENDING_PICKUP: {
+    label: "Đang chuẩn bị",
+    color: "bg-blue-500",
+    icon: CheckCircle,
+    description: "Đơn hàng đã được xác nhận và đang chuẩn bị",
+  },
+  PENDING_DELIVERY: {
+    label: "Đang giao",
+    color: "bg-purple-500",
+    icon: Truck,
+    description: "Đơn hàng đang trên đường giao đến bạn",
+  },
+  DELIVERED: {
+    label: "Đã giao",
+    color: "bg-green-500",
+    icon: Package,
+    description: "Đơn hàng đã được giao thành công",
+  },
+  CANCELLED: {
+    label: "Đã hủy",
+    color: "bg-red-500",
+    icon: AlertCircle,
+    description: "Đơn hàng đã bị hủy",
+  },
+  RETURNED: {
+    label: "Đã trả hàng",
+    color: "bg-orange-500",
+    icon: AlertCircle,
+    description: "Đơn hàng đã được hoàn trả",
+  },
+};
 export type OrderStatusType = (typeof OrderStatus)[keyof typeof OrderStatus];

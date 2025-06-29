@@ -24,6 +24,31 @@ export const GetOrderListResSchema = z.object({
   totalPages: z.number(), // Tổng số trang
 });
 
+export const GetOrdersSchema = z.object({
+  data: z.array(
+    OrderSchema.extend({
+      items: z.array(ProductSKUSnapshotSchema),
+    }).omit({
+      receiver: true,
+      deletedAt: true,
+      deletedById: true,
+      createdById: true,
+      updatedById: true,
+    })
+  ),
+});
+
+export const GetOrderPropsSchema = z.object({
+  order: OrderSchema.extend({
+    items: z.array(ProductSKUSnapshotSchema),
+  }).omit({
+    receiver: true,
+    deletedAt: true,
+    deletedById: true,
+    createdById: true,
+    updatedById: true,
+  }),
+});
 export const GetOrderListQuerySchema = PaginationQuerySchema.extend({
   status: OrderStatusSchema.optional(),
 });
@@ -64,6 +89,8 @@ export const UpdateOrderBodySchema = OrderSchema.pick({
 
 export const UpdateOrderResSchema = GetOrderDetailResSchema;
 
+export type GetOrderPropsType = z.infer<typeof GetOrderPropsSchema>;
+export type GetOrdersType = z.infer<typeof GetOrdersSchema>;
 export type UpdateOrderResType = GetOrderDetailResType;
 export type UpdateOrderBodyType = z.infer<typeof UpdateOrderBodySchema>;
 export type GetOrderListResType = z.infer<typeof GetOrderListResSchema>;

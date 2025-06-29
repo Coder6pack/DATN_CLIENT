@@ -1,14 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import productApiRequest from "../apiRequests/product";
-import { UpdateProductBodyType } from "@/schemaValidations/product.model";
+import {
+  GetProductsQueryType,
+  UpdateProductBodyType,
+} from "@/schemaValidations/product.model";
+import { PaginationQueryType } from "@/shared/models/request.model";
 
-export const useListProducts = () => {
+export const useListProducts = ({ page, limit }: PaginationQueryType) => {
   return useQuery({
-    queryKey: ["list-products"],
-    queryFn: productApiRequest.listProduct,
+    queryKey: ["list-products", page, limit],
+    queryFn: () => productApiRequest.listProduct({ page, limit }),
   });
 };
 
+export const useFilterProducts = (params: GetProductsQueryType) => {
+  return useQuery({
+    queryKey: [
+      "list-product",
+      params.brandIds,
+      params.categories,
+      params.name,
+      params.maxPrice,
+      params.orderBy,
+      params.page,
+      params.sortBy,
+    ],
+    queryFn: () => productApiRequest.filterProduct(params),
+    gcTime: 0,
+    staleTime: 0,
+  });
+};
 export const useAddProductMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -64,22 +64,16 @@ export default function AddEmployee() {
           formData
         );
         const imageUrl = uploadImageResult.payload.data[0].url;
-        console.log(imageUrl);
         body = {
           ...values,
           avatar: imageUrl,
         };
         const result = await addAccountMutation.mutateAsync(body);
         toast({
-          description: "Them tai khoan thành công",
+          description: "Thêm tài khoản thành công",
         });
         setOpen(false);
       }
-      await addAccountMutation.mutateAsync(body);
-      toast({
-        description: "Them tai khoan thành công",
-      });
-      setOpen(false);
     } catch (error) {
       handleHttpErrorApi({
         error,

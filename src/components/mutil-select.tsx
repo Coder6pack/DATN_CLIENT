@@ -18,7 +18,7 @@ export default function MultiSelectCategory({
 }: {
   value?: number[] | undefined;
   onChange: (value: number[]) => void;
-  categories: GetCategoryDetailResType[];
+  categories?: GetCategoryDetailResType[];
 }) {
   const [currentCategory, setCurrentCategory] = useState<string>("");
   if (!categories) {

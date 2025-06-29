@@ -50,7 +50,6 @@ import {
 import { useSearchParams } from "next/navigation";
 import AutoPagination from "@/components/auto-pagination";
 import { AccountType, GetUsersResType } from "@/schemaValidations/user.model";
-import { GetProfileType } from "@/shared/models/shared-user.model";
 import {
   useDeleteAccountMutation,
   useListAccount,

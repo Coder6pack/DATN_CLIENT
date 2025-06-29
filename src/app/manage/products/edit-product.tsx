@@ -50,6 +50,7 @@ import {
   handleHttpErrorApi,
 } from "@/lib/utils";
 import { useListBrand } from "@/app/queries/useBrand";
+import { useListCategories } from "@/app/queries/useCategory";
 
 interface SKU {
   value: string;
@@ -86,7 +87,7 @@ export default function EditProduct({
       basePrice: 0,
       virtualPrice: 0,
       brandId: undefined,
-      categories: undefined,
+      categories: [],
       images: undefined,
       skus: undefined,
       variants: undefined,
@@ -96,7 +97,6 @@ export default function EditProduct({
   const images = form.watch("images");
   const watchedVariants = form.watch("variants");
   const sKus = form.watch("skus");
-
   // Always call these hooks regardless of id value
   const {
     data: productDetail,
@@ -111,7 +111,7 @@ export default function EditProduct({
   const updateProductMutation = useUpdateProductMutation();
   const updateMediaMutation = useUploadFileMediaMutation();
   const { data: listBrand } = useListBrand();
-
+  const { data: listCate } = useListCategories();
   // Set open state when id changes
   useEffect(() => {
     if (id) {
@@ -137,7 +137,6 @@ export default function EditProduct({
         variants,
         categories,
       } = productDetail.payload;
-
       // Prepare form data
       const formData = {
         name: name || "",
@@ -154,7 +153,7 @@ export default function EditProduct({
             image: sku.image || "",
           })) || [],
         variants: variants || [],
-        categories: categories?.map((cat) => cat.id) || [],
+        categories: categories.map((cat) => cat.id),
       };
 
       console.log("Setting form data:", formData);
@@ -259,7 +258,6 @@ export default function EditProduct({
           skus: newSkus,
         };
       }
-
       await updateProductMutation.mutateAsync(body);
 
       toast({
@@ -280,14 +278,16 @@ export default function EditProduct({
   };
 
   // Early return after all hooks have been called
-  if (!listBrand) {
+  if (!listBrand || !listCate) {
     return null;
   }
 
   const getListBrand = listBrand.payload.data.sort((a, b) =>
     a.name.localeCompare(b.name, "vi", { sensitivity: "base" })
   );
-
+  const getListCate = listCate.payload.data.sort((a, b) =>
+    a.name.localeCompare(b.name, "vi", { sensitivity: "base" })
+  );
   if (isLoading || !isDataLoaded) {
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -392,6 +392,7 @@ export default function EditProduct({
                                 <MultiSelectCategory
                                   value={field.value}
                                   onChange={field.onChange}
+                                  categories={listCate.payload.data}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -399,6 +400,44 @@ export default function EditProduct({
                           )}
                         />
                       </div>
+                      {/* <div className="space-y-2">
+                        <FormField
+                          control={form.control}
+                          name="categories"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Categories</FormLabel>
+                              <Select
+                                onValueChange={(value) =>
+                                  field.onChange(
+                                    value ? Number.parseInt(value, 10) : null
+                                  )
+                                }
+                                value={
+                                  field.value ? field.value.toString() : ""
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose cat" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {getListCate.map((cate) => (
+                                    <SelectItem
+                                      key={cate.id}
+                                      value={cate.id.toString()}
+                                    >
+                                      {cate.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div> */}
                       <div className="space-y-2">
                         <FormField
                           control={form.control}

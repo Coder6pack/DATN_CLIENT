@@ -23,7 +23,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { formatCurrency, handleHttpErrorApi } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -55,7 +61,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useListOrder, useCancelOrderMutation } from "@/app/queries/useOrder";
+import {
+  useCancelOrderMutation,
+  useListOrderManage,
+} from "@/app/queries/useOrder";
 
 import OrderDetail from "./order-detail";
 import UpdateOrderStatus from "./update-order";
@@ -65,6 +74,8 @@ import {
   OrderStatusType,
 } from "@/constants/order.constant";
 import { ProductSKUSnapShotType } from "@/shared/models/shared-order.model";
+import { GetOrderListQueryType } from "@/schemaValidations/order.model";
+import AutoPagination from "@/components/auto-pagination";
 
 // Type for order list item based on GetOrderListResSchema
 type OrderListItem = {
@@ -203,12 +214,14 @@ export const columns: ColumnDef<OrderListItem>[] = [
               <Package className="w-4 h-4 mr-2" />
               Update Status
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={openDeleteOrder}
-              className="text-destructive"
-            >
-              Cancel Order
-            </DropdownMenuItem>
+            {!["DELIVERED", "RETURNED"].includes(row.original.status) && (
+              <DropdownMenuItem
+                onClick={openDeleteOrder}
+                className="text-destructive"
+              >
+                Cancel Order
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -281,14 +294,16 @@ const PAGE_SIZE = 10;
 
 export default function OrderTable() {
   const searchParam = useSearchParams();
+  const router = useRouter();
   const page = searchParam.get("page") ? Number(searchParam.get("page")) : 1;
   const pageIndex = page - 1;
+  const statusFromUrl = searchParam.get("status") as OrderStatusType | null;
 
   const [orderIdDetail, setOrderIdDetail] = useState<number | undefined>();
   const [orderIdUpdate, setOrderIdUpdate] = useState<number | undefined>();
   const [orderDelete, setOrderDelete] = useState<OrderListItem | null>(null);
   const [statusFilter, setStatusFilter] = useState<OrderStatusType | "all">(
-    "all"
+    statusFromUrl || "all"
   );
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -309,7 +324,19 @@ export default function OrderTable() {
     userId: false,
   });
 
-  const getOrders = useListOrder();
+  // Flag để kiểm soát refetch
+  const [shouldRefetch, setShouldRefetch] = useState(false);
+
+  // Build params based on filters
+  const params: GetOrderListQueryType = {
+    page,
+    limit: PAGE_SIZE,
+    status:
+      statusFilter === "all" ? undefined : (statusFilter as OrderStatusType),
+  };
+
+  // Fetch orders with dynamic params using the API
+  const getOrders = useListOrderManage(params);
 
   const data = getOrders.data?.payload.data ?? [];
   const totalPages = getOrders.data?.payload.totalPages ?? 0;
@@ -335,7 +362,10 @@ export default function OrderTable() {
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination,
+      pagination: {
+        pageIndex,
+        pageSize: PAGE_SIZE,
+      },
     },
   });
 
@@ -351,7 +381,20 @@ export default function OrderTable() {
     setStatusFilter("all");
     table.getColumn("id")?.setFilterValue("");
     table.getColumn("userId")?.setFilterValue("");
+    updateUrl();
   };
+
+  // Hàm cập nhật URL với useCallback
+  const updateUrl = useCallback(() => {
+    const query: { [key: string]: string | number | undefined } = {
+      page: page,
+    };
+    if (statusFilter !== "all") {
+      query.status = statusFilter;
+    }
+    const queryString = new URLSearchParams(query as any).toString();
+    router.push(`/manage/orders?${queryString}`, { scroll: false });
+  }, [page, statusFilter, router]);
 
   useEffect(() => {
     table.setPagination({
@@ -360,6 +403,61 @@ export default function OrderTable() {
     });
   }, [table, pageIndex]);
 
+  // Refetch chỉ khi cần thiết
+  useEffect(() => {
+    if (shouldRefetch) {
+      const handleRefetch = () => {
+        updateUrl();
+        getOrders.refetch();
+        setShouldRefetch(false); // Reset flag sau khi refetch
+      };
+
+      const debounceRefetch = setTimeout(handleRefetch, 300);
+      return () => clearTimeout(debounceRefetch);
+    }
+  }, [shouldRefetch, updateUrl, getOrders]);
+
+  // Kích hoạt refetch khi thay đổi statusFilter hoặc page
+  useEffect(() => {
+    setShouldRefetch(true);
+  }, [statusFilter, page]);
+
+  // Xử lý redirect từ middleware
+  useEffect(() => {
+    if (getOrders.error) {
+      console.error("Fetch error:", getOrders.error);
+      if (getOrders.error.message.includes("redirect")) {
+        // Xử lý redirect thủ công nếu cần
+        toast({
+          title: "Session Expired",
+          description: "Please log in again.",
+          variant: "destructive",
+        });
+        // Có thể thêm logic redirect về /login nếu cần
+      }
+    }
+  }, [getOrders.error]);
+
+  // Debug refetch và response
+  useEffect(() => {
+    if (getOrders.isFetching) {
+      console.log("Refetching with params:", params);
+    }
+    if (getOrders.data) {
+      console.log("Response:", getOrders.data);
+    }
+  }, [getOrders.isFetching, getOrders.data, params]);
+  const handlePageChange = (pageNumber: number) => {
+    const newPageIndex = pageNumber - 1;
+    table.setPageIndex(newPageIndex);
+
+    // Cập nhật URL
+    const queryString = new URLSearchParams(pageNumber as any).toString();
+    router.push(`/manage/orders?${queryString}`, { scroll: false });
+    // const newSearchParams = new URLSearchParams(searchParams.toString());
+    // newSearchParams.set("page", pageNumber.toString());
+    // router.push(`${pathname}?${newSearchParams.toString()}`);
+  };
   return (
     <OrderTableContext.Provider
       value={{
@@ -433,9 +531,13 @@ export default function OrderTable() {
                 className="max-w-sm"
               />
             </div>
+
+            <Button variant="outline" onClick={clearAllFilters}>
+              Clear Filters
+            </Button>
           </div>
 
-          {statusFilter !== "all" && (
+          {activeFilters.status && (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Active filter:</span>
               <Badge variant="outline" className="flex items-center gap-1">
@@ -522,29 +624,13 @@ export default function OrderTable() {
             Showing <strong>{table.getPaginationRowModel().rows.length}</strong>{" "}
             of <strong>{totalItems}</strong> orders
           </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Previous
-            </Button>
-            <div className="flex items-center space-x-1">
-              <span className="text-sm text-muted-foreground">
-                Page {table.getState().pagination.pageIndex + 1} of{" "}
-                {totalPages || 1}
-              </span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Next
-            </Button>
+          <div>
+            <AutoPagination
+              page={table.getState().pagination.pageIndex + 1}
+              pageSize={totalPages}
+              pathname={`/manage/orders`}
+              onClick={handlePageChange}
+            />
           </div>
         </div>
       </div>
