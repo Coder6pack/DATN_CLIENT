@@ -77,7 +77,9 @@ export default function OrderSummary({
       console.log(result);
       if (result) {
         setPaymentId(result.payload.paymentId);
-        setQrCode(generateQrCode({ total, paymentId }));
+        setQrCode(
+          generateQrCode({ total, paymentId: result.payload.paymentId })
+        );
         setShowPaymentDialog(true);
       }
     } catch (error) {
