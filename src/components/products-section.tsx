@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Star, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,25 +9,40 @@ import { ProductType } from "@/shared/models/shared-product.model";
 import Link from "next/link";
 import Rating from "./rating";
 import { useListProducts } from "@/app/queries/useProduct";
+import { useState, useEffect } from "react";
 
 interface ProductsSectionProps {
   title?: string;
   showViewAll?: boolean;
-  onViewAll?: () => void;
 }
 
 export default function ProductsSection({
   title = "Sản Phẩm Nổi Bật",
   showViewAll = true,
-  onViewAll,
 }: ProductsSectionProps) {
-  const { data: listProduct } = useListProducts({ page: 1, limit: 10 });
-  if (!listProduct) return;
-  const products = listProduct.payload.data;
-  // Lọc sản phẩm hợp lệ
-  const validProducts = products.filter((product) => product && product.id);
+  const [page, setPage] = useState(1);
+  const [allProducts, setAllProducts] = useState<ProductType[]>([]);
+  const limit = 12;
+  const { data: listProduct, isLoading } = useListProducts({ page, limit });
 
-  if (validProducts.length === 0) {
+  // Append new products to the existing list when new data is fetched
+  useEffect(() => {
+    if (listProduct?.payload?.data) {
+      const newProducts = listProduct.payload.data.filter(
+        (product) =>
+          product && product.id && !allProducts.some((p) => p.id === product.id)
+      );
+      // console.log("Filtered New Products:", newProducts); // Debug filtered products
+      setAllProducts((prevProducts) => [...prevProducts, ...newProducts]);
+    }
+  }, [listProduct]);
+
+  // Remove duplicates by id using Map
+  const validProducts = Array.from(
+    new Map(allProducts.map((product) => [product.id, product])).values()
+  ).filter((product) => product && product.id);
+
+  if (validProducts.length === 0 && !isLoading) {
     return (
       <section className="py-16 bg-muted/30 transition-colors duration-300">
         <div className="container mx-auto px-4 text-center">
@@ -38,6 +53,10 @@ export default function ProductsSection({
       </section>
     );
   }
+
+  const handleViewMore = () => {
+    setPage((prevPage) => prevPage + 1);
+  };
 
   return (
     <section className="py-16 bg-muted/30 transition-colors duration-300">
@@ -96,10 +115,15 @@ export default function ProductsSection({
             </Link>
           ))}
         </div>
-        {showViewAll && (
+        {showViewAll && listProduct?.payload?.data && (
           <div className="text-center mt-12">
-            <Button size="lg" variant="outline" onClick={onViewAll}>
-              Xem Tất Cả Sản Phẩm
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={handleViewMore}
+              disabled={isLoading}
+            >
+              {isLoading ? "Đang tải..." : "Xem Thêm Sản Phẩm"}
             </Button>
           </div>
         )}

@@ -32,7 +32,6 @@ import { useSocket } from "@/lib/socket";
 
 interface PaymentData {
   status: string;
-  // Thêm các thuộc tính khác nếu cần
 }
 interface PaymentDialogProps {
   open: boolean;
@@ -58,7 +57,6 @@ export default function PaymentDialog({
   >("pending");
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
   const [showConfetti, setShowConfetti] = useState(false);
-
   useEffect(() => {
     if (!open || paymentStatus !== "pending") return;
 
@@ -152,15 +150,20 @@ export default function PaymentDialog({
       });
     }
   };
-
-  const handlePaymentCheck = () => {
-    setPaymentStatus("checking");
-  };
-
   if (paymentStatus === "success") {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md mx-auto">
+      <Dialog
+        open={open}
+        onOpenChange={(open) => {
+          if (!open) return; // Ngăn đóng dialog
+          onOpenChange(open);
+        }}
+      >
+        <DialogContent
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="max-w-md mx-auto"
+        >
           <div className="text-center py-8">
             {showConfetti && (
               <div className="absolute inset-0 pointer-events-none">
@@ -259,46 +262,6 @@ export default function PaymentDialog({
                       Thời gian còn lại
                     </p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Payment Status */}
-            <Card className="border-0 shadow-lg rounded-3xl overflow-hidden">
-              <CardContent className="p-6">
-                <div className="text-center space-y-4">
-                  {paymentStatus === "pending" && (
-                    <>
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                        <Clock className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <h4 className="font-semibold">Đang chờ thanh toán</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Vui lòng thực hiện thanh toán theo thông tin bên cạnh
-                      </p>
-                      <Button
-                        onClick={handlePaymentCheck}
-                        className="w-full"
-                        variant="outline"
-                      >
-                        Tôi đã thanh toán
-                      </Button>
-                    </>
-                  )}
-
-                  {paymentStatus === "checking" && (
-                    <>
-                      <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
-                        <div className="w-6 h-6 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
-                      </div>
-                      <h4 className="font-semibold">
-                        Đang kiểm tra thanh toán
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Vui lòng đợi trong giây lát...
-                      </p>
-                    </>
-                  )}
                 </div>
               </CardContent>
             </Card>

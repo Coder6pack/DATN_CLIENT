@@ -130,7 +130,8 @@ export default function CartDropDown() {
                         (total, item) => total + item.sku.price * item.quantity,
                         0
                       )
-                      .toLocaleString()}
+                      .toLocaleString()}{" "}
+                    ₫
                   </span>
                 </div>
                 <div className="space-y-2">

@@ -2,14 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import orderApiRequest from "../apiRequests/order";
 import {
   GetOrderListQueryType,
-  GetOrderParamsType,
   UpdateOrderBodyType,
 } from "@/schemaValidations/order.model";
-import { PaginationQueryType } from "@/shared/models/request.model";
 
 export const useListOrderManage = (query: GetOrderListQueryType) => {
   return useQuery({
-    queryKey: ["list-orders", query],
+    queryKey: ["orders", query],
     queryFn: () => orderApiRequest.listOrderManage(query),
     retry: 1,
     // Tăng staleTime để giảm refetch liên tục (ví dụ: 5 phút)
@@ -24,7 +22,7 @@ export const useListOrderManage = (query: GetOrderListQueryType) => {
 
 export const useListOrder = (query: GetOrderListQueryType) => {
   return useQuery({
-    queryKey: ["list-orders", query],
+    queryKey: ["orders", query],
     queryFn: () => orderApiRequest.listOrder(query),
   });
 };
@@ -70,7 +68,7 @@ export const useUpdateOrderMutation = () => {
       orderApiRequest.updateOrder(id, body),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["list-orders"],
+        queryKey: ["orders"],
       });
     },
   });
@@ -83,7 +81,7 @@ export const useCancelOrderMutation = () => {
       orderApiRequest.cancelOrder(id, body),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["list-orders"],
+        queryKey: ["orders"],
       });
     },
   });

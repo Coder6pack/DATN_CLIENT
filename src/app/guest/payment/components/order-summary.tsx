@@ -45,9 +45,9 @@ export default function OrderSummary({
   const [paymentId, setPaymentId] = useState<number>(0);
   const [qrCode, setQrCode] = useState<string>("");
   const router = useRouter();
-  const { data } = useListCart({ page: 1, limit: 100 });
+  const { data, refetch } = useListCart({ page: 1, limit: 100 });
   const createOrderMutation = useAddOrderMutation();
-  if (!data) {
+  if (!data || !data.payload.data) {
     return;
   }
   const listCart =
@@ -62,6 +62,7 @@ export default function OrderSummary({
   const discount = 0;
   const total = subtotal + shipping - discount;
   const handlePaymentSuccess = () => {
+    refetch();
     router.push("/guest/orders");
   };
   const onSubmit = async () => {

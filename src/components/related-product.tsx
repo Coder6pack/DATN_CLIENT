@@ -1,4 +1,4 @@
-import { useFilterProducts } from "@/app/queries/useProduct";
+import { useFilterProducts, useListProducts } from "@/app/queries/useProduct";
 import Rating from "@/components/rating";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,10 @@ export default function RelatedProduct({
 }: {
   categories: number[];
 }) {
+  const { data: products } = useListProducts({
+    page: 1,
+    limit: 10,
+  });
   const { data } = useFilterProducts({
     page: 1,
     limit: 10,
@@ -20,10 +24,11 @@ export default function RelatedProduct({
     sortBy: "createdAt",
     categories,
   });
-  if (!data) {
+  if (!data || !products) {
     return;
   }
-  const relatedProducts = data.payload.data;
+  console.log("data", data);
+  const relatedProducts = data ? data.payload.data : products.payload.data;
   return (
     <>
       {/* Related Products */}
