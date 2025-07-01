@@ -132,6 +132,8 @@ export default function ProductDetailContent({
     0
   );
   const cateArr = productDetail.categories.map((cate) => cate.id);
+  console.log("productDetail", productDetail);
+  console.log("cateArr", cateArr);
   const handleQuantityChange = (change: number) => {
     setQuantity((prev) =>
       Math.max(1, Math.min(totalStock || 1, prev + change))
@@ -560,14 +562,14 @@ export default function ProductDetailContent({
                 <ShoppingBag className="h-6 w-6 mr-3" />
                 Thêm vào giỏ hàng
               </Button>
-              <Button
+              {/* <Button
                 variant="outline"
                 size="lg"
                 className="w-full text-lg font-semibold py-6 rounded-2xl border-2"
               >
                 <Zap className="h-6 w-6 mr-3" />
                 Mua ngay
-              </Button>
+              </Button> */}
             </div>
 
             {/* Features */}

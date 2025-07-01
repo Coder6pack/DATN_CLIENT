@@ -19,11 +19,6 @@ export default function HomePage() {
   if (!slideShows || !brands || !categories) {
     return;
   }
-  const handleViewAllProducts = () => {
-    console.log("View all products");
-    // Navigate to products page
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <HeroSlideshow slides={slideShows.payload.data} />
@@ -32,7 +27,7 @@ export default function HomePage() {
 
       <CategoriesCarousel categories={categories.payload.data} />
 
-      <ProductsSection onViewAll={handleViewAllProducts} />
+      <ProductsSection />
       <Newsletter />
     </div>
   );

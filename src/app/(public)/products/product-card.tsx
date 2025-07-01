@@ -84,11 +84,11 @@ export default function ProductCard({
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
                 <span className="font-bold text-primary text-lg">
-                  {formatCurrency(product.basePrice)}₫
+                  {product.virtualPrice.toLocaleString()}₫
                 </span>
-                {formatCurrency(product.virtualPrice) && (
+                {product.basePrice && (
                   <span className="text-sm text-muted-foreground line-through">
-                    {formatCurrency(product.virtualPrice)}₫
+                    {(product.virtualPrice + 30000).toLocaleString()}₫
                   </span>
                 )}
               </div>

@@ -62,7 +62,7 @@ export default function PaymentMethod({
           </div>
 
           {/* Cash Payment */}
-          <div className="flex items-center space-x-4 p-6 border-2 rounded-2xl hover:bg-orange-50 transition-colors cursor-pointer">
+          {/* <div className="flex items-center space-x-4 p-6 border-2 rounded-2xl hover:bg-orange-50 transition-colors cursor-pointer">
             <RadioGroupItem value="cash" id="cash" className="w-5 h-5" />
             <Label htmlFor="cash" className="flex-1 cursor-pointer">
               <div className="flex items-center justify-between">
@@ -87,7 +87,7 @@ export default function PaymentMethod({
                 </Badge>
               </div>
             </Label>
-          </div>
+          </div> */}
         </RadioGroup>
 
         {/* Security Notice */}
