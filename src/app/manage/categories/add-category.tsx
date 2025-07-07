@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusCircle, Upload } from "lucide-react";
+import { PlusCircle, Send, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -20,10 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUploadFileMediaMutation } from "@/app/queries/useMedia";
 import { toast } from "@/hooks/use-toast";
 import { handleHttpErrorApi } from "@/lib/utils";
-import {
-  useAddCategoryMutation,
-  useListCategories,
-} from "@/app/queries/useCategory";
+import { useAddCategoryMutation } from "@/app/queries/useCategory";
 import {
   CreateCategoryBodySchema,
   CreateCategoryBodyType,
@@ -32,6 +29,7 @@ import {
 export default function AddCategory() {
   const [file, setFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const addCategoryMutation = useAddCategoryMutation();
   const updateMediaMutation = useUploadFileMediaMutation();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
@@ -52,6 +50,7 @@ export default function AddCategory() {
   };
   const onSubmit = async (values: CreateCategoryBodyType) => {
     if (addCategoryMutation.isPending) return;
+    setIsSubmitting(true);
     try {
       let body = values;
       if (file) {
@@ -78,6 +77,8 @@ export default function AddCategory() {
         error,
         setError: form.setError,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   return (
@@ -167,8 +168,23 @@ export default function AddCategory() {
           </form>
         </Form>
         <DialogFooter>
-          <Button type="submit" form="add-category-form">
-            Create
+          <Button
+            type="submit"
+            form="add-category-form"
+            disabled={isSubmitting}
+            className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                {"Đang thêm..."}
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                {"Thêm"}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

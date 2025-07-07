@@ -16,6 +16,7 @@ import ChangeGuestPassword from "./change-guest-password";
 import { useListOrder } from "@/app/queries/useOrder";
 import { statusConfig } from "@/constants/order.constant";
 import { useSocket } from "@/lib/socket";
+import Link from "next/link";
 
 export default function ProfileContent() {
   const [selectedOrderId, setSelectedOrderId] = useState<number>(0);
@@ -210,13 +211,25 @@ export default function ProfileContent() {
                 <Separator className="my-8" />
 
                 <div className="text-center">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="px-8 py-4 rounded-2xl border-2"
-                  >
-                    Xem tất cả đơn hàng
-                  </Button>
+                  {orders.length > 0 ? (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="px-8 py-4 rounded-2xl border-2"
+                    >
+                      Xem tất cả đơn hàng
+                    </Button>
+                  ) : (
+                    <Link href="/">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="px-8 py-4 rounded-2xl border-2"
+                      >
+                        Hãy mua hàng
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </CardContent>
             </Card>

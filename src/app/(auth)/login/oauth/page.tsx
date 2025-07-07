@@ -30,8 +30,8 @@ function OAuthCallback() {
             }
             if (roleName === Role.Client) {
               setIsAuth(true);
-              router.refresh();
               router.push("/");
+              router.refresh();
             }
           })
           .catch((e) => {

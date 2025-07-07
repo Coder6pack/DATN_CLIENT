@@ -9,7 +9,6 @@ import {
   removeTokensFromLocalStorage,
 } from "@/lib/utils";
 import { ProductType } from "@/shared/models/shared-product.model";
-import { useListCart } from "@/app/queries/useCart";
 
 const queryClient = new QueryClient({
   defaultOptions: {

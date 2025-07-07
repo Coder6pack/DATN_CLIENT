@@ -127,7 +127,9 @@ export const columns: ColumnDef<AccountType>[] = [
     accessorKey: "roleId",
     header: "Role id",
     cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("roleId")}</div>
+      <div className="capitalize">
+        {row.getValue("roleId") === 1 ? "Admin" : "Seller"}
+      </div>
     ),
   },
   {
@@ -236,8 +238,10 @@ function AlertDialogDeleteAccount({
 const PAGE_SIZE = 10;
 export default function AccountTable() {
   const getAccounts = useListAccount();
-  const data = getAccounts.data?.payload.data ?? [];
   const searchParam = useSearchParams();
+  const data =
+    getAccounts.data?.payload.data.filter((account) => account.roleId !== 2) ??
+    [];
   const page = searchParam.get("page") ? Number(searchParam.get("page")) : 1;
   const pageIndex = page - 1;
   // const params = Object.fromEntries(searchParam.entries())

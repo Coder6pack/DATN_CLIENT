@@ -32,6 +32,8 @@ interface ImageUploadProps {
   onChange: (urls: string[]) => void;
   maxImages?: number;
   className?: string;
+  clearImage: boolean;
+  setClearImage: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export default function ImageUpload({
@@ -39,6 +41,8 @@ export default function ImageUpload({
   onChange,
   maxImages = 10,
   className,
+  clearImage,
+  setClearImage,
 }: ImageUploadProps) {
   const [images, setImages] = useState<ProductImage[]>(() => {
     // Convert string URLs to ProductImage objects
@@ -62,6 +66,13 @@ export default function ImageUpload({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  useEffect(() => {
+    if (clearImage) {
+      setImages([]);
+      setClearImage(false);
+    }
+  }, [clearImage]);
 
   // Sync images with parent component when images change
   useEffect(() => {

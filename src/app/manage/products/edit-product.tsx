@@ -51,6 +51,7 @@ import {
 } from "@/lib/utils";
 import { useListBrand } from "@/app/queries/useBrand";
 import { useListCategories } from "@/app/queries/useCategory";
+import { Send } from "lucide-react";
 
 interface SKU {
   value: string;
@@ -77,7 +78,7 @@ export default function EditProduct({
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-
+  const [clearImage, setClearImage] = useState(false);
   // Always call all hooks in the same order
   const form = useForm<UpdateProductBodyType>({
     resolver: zodResolver(UpdateProductBodySchema),
@@ -95,6 +96,7 @@ export default function EditProduct({
   });
 
   const images = form.watch("images");
+  const virtualPrice = form.watch("virtualPrice");
   const watchedVariants = form.watch("variants");
   const sKus = form.watch("skus");
   // Always call these hooks regardless of id value
@@ -210,8 +212,8 @@ export default function EditProduct({
   const onSubmit = async (values: UpdateProductBodyType) => {
     if (updateProductMutation.isPending || !id) return;
 
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
       let body: UpdateProductBodyType & { id: number } = {
         id,
         ...values,
@@ -258,15 +260,23 @@ export default function EditProduct({
           skus: newSkus,
         };
       }
-      await updateProductMutation.mutateAsync(body);
-
-      toast({
-        description: "Update product successfully",
-      });
-
-      reset();
-      onSubmitSuccess?.();
-      refetch();
+      const result = await updateProductMutation.mutateAsync(body);
+      if (result) {
+        toast({
+          description: "Cập nhật sản phẩm thành công",
+        });
+        setOpen(false);
+        onSubmitSuccess?.();
+        reset();
+        setClearImage(true);
+        refetch();
+      } else {
+        toast({
+          title: "Lỗi không thêm được",
+          variant: "destructive",
+          description: "Cập nhật sản phẩm không thành công, hãy kiểm tra lại",
+        });
+      }
     } catch (error) {
       handleHttpErrorApi({
         error,
@@ -400,44 +410,6 @@ export default function EditProduct({
                           )}
                         />
                       </div>
-                      {/* <div className="space-y-2">
-                        <FormField
-                          control={form.control}
-                          name="categories"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Categories</FormLabel>
-                              <Select
-                                onValueChange={(value) =>
-                                  field.onChange(
-                                    value ? Number.parseInt(value, 10) : null
-                                  )
-                                }
-                                value={
-                                  field.value ? field.value.toString() : ""
-                                }
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Choose cat" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {getListCate.map((cate) => (
-                                    <SelectItem
-                                      key={cate.id}
-                                      value={cate.id.toString()}
-                                    >
-                                      {cate.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div> */}
                       <div className="space-y-2">
                         <FormField
                           control={form.control}
@@ -537,6 +509,8 @@ export default function EditProduct({
                               value={field.value || []}
                               onChange={field.onChange}
                               maxImages={10}
+                              clearImage={clearImage}
+                              setClearImage={setClearImage}
                             />
                           </FormControl>
                           <FormMessage />
@@ -586,6 +560,7 @@ export default function EditProduct({
                               value={field.value || []}
                               onChange={field.onChange}
                               variants={watchedVariants || []}
+                              virtualPrice={virtualPrice}
                             />
                           </FormControl>
                           <FormMessage />
@@ -603,8 +578,19 @@ export default function EditProduct({
                     type="submit"
                     form="edit-product-form"
                     disabled={isSubmitting}
+                    className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
                   >
-                    {isSubmitting ? "Updating..." : "Update product"}
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        {"Đang cập nhật..."}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        {"Lưu"}
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>

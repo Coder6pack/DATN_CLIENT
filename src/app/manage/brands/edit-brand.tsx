@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload } from "lucide-react";
+import { Send, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -35,6 +35,7 @@ export default function EditBrand({
   onSubmitSuccess?: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const form = useForm<UpdateBrandBodyType>({
     resolver: zodResolver(UpdateBrandBodySchema),
@@ -69,6 +70,7 @@ export default function EditBrand({
 
   const onSubmit = async (values: UpdateBrandBodyType) => {
     if (updateBrandtMutation.isPending) return;
+    setIsSubmitting(true);
     try {
       let body: UpdateBrandBodyType & { id: number } = {
         id: id as number,
@@ -100,6 +102,8 @@ export default function EditBrand({
         error,
         setError: form.setError,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   const test = (value: any) => {
@@ -190,8 +194,23 @@ export default function EditBrand({
           </form>
         </Form>
         <DialogFooter>
-          <Button type="submit" form="edit-brand-form">
-            Lưu
+          <Button
+            type="submit"
+            form="edit-brand-form"
+            disabled={isSubmitting}
+            className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                {"Đang lưu..."}
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                {"Lưu"}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

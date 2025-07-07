@@ -27,29 +27,26 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import envConfig from "@/config";
-import { useListCart } from "@/app/queries/useCart";
 import { useSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
+import { useGetOrder } from "@/app/queries/useOrder";
+import { generateQrCode } from "@/lib/utils";
 
 interface PaymentData {
   status: string;
 }
 interface PaymentDialogProps {
   open: boolean;
+  orderId: number;
   onOpenChange: (open: boolean) => void;
-  totalAmount: number;
   onPaymentSuccess: () => void;
-  paymentId: number;
-  qrCode: string;
 }
 
-export default function PaymentDialog({
+export default function OrderPayment({
   open,
+  orderId,
   onOpenChange,
-  totalAmount,
   onPaymentSuccess,
-  paymentId,
-  qrCode,
 }: PaymentDialogProps) {
   const { socket, isConnected } = useSocket();
   const timersRef = useRef<NodeJS.Timeout[]>([]);
@@ -57,9 +54,8 @@ export default function PaymentDialog({
   const [paymentStatus, setPaymentStatus] = useState<
     "pending" | "checking" | "success"
   >("pending");
-  const [timeLeft, setTimeLeft] = useState(300); // 2 minutes
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [showConfetti, setShowConfetti] = useState(false);
-
   // Timer effect
   useEffect(() => {
     if (!open || paymentStatus !== "pending") return;
@@ -79,7 +75,7 @@ export default function PaymentDialog({
   // Redirect when timeLeft reaches 0 and payment is pending
   useEffect(() => {
     if (timeLeft === 0 && paymentStatus === "pending") {
-      router.push("/guest/orders");
+      router.refresh();
     }
   }, [timeLeft, paymentStatus, router]);
 
@@ -131,12 +127,16 @@ export default function PaymentDialog({
     }
   }, [open]);
 
-  const { data } = useListCart({ page: 1, limit: 10 });
+  const { data } = useGetOrder({ id: orderId, enabled: Boolean(orderId) });
   if (!data) {
     return null;
   }
-  const listCart =
-    data.payload.data.length === 0 ? [] : data.payload.data[0].cartItems;
+  const orders = data.payload.items;
+  const total = orders.reduce(
+    (acc, item) => acc + item.skuPrice * item.quantity,
+    0
+  );
+  const qrCode = generateQrCode({ total, paymentId: data.payload.paymentId });
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -162,13 +162,7 @@ export default function PaymentDialog({
   };
   if (paymentStatus === "success") {
     return (
-      <Dialog
-        open={open}
-        onOpenChange={(open) => {
-          if (!open) return; // Ngăn đóng dialog
-          onOpenChange(open);
-        }}
-      >
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           onEscapeKeyDown={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
@@ -211,7 +205,7 @@ export default function PaymentDialog({
               <p className="text-sm text-green-700 dark:text-green-300">
                 Mã đơn hàng:{" "}
                 <span className="font-bold">
-                  #{`${envConfig.NEXT_PUBLIC_CONTENT}${paymentId}`}
+                  #{`${envConfig.NEXT_PUBLIC_CONTENT}${data.payload.paymentId}`}
                 </span>
               </p>
             </div>
@@ -222,13 +216,7 @@ export default function PaymentDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(open) => {
-        if (!open) return; // Ngăn đóng dialog
-        onOpenChange(open);
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         onEscapeKeyDown={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
@@ -393,13 +381,13 @@ export default function PaymentDialog({
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-primary text-lg">
-                          {totalAmount.toLocaleString()}₫
+                          {total.toLocaleString()}₫
                         </span>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() =>
-                            copyToClipboard(totalAmount.toString(), "Số tiền")
+                            copyToClipboard(total.toString(), "Số tiền")
                           }
                         >
                           <Copy className="h-3 w-3" />
@@ -417,14 +405,14 @@ export default function PaymentDialog({
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="font-mono font-bold text-yellow-700 dark:text-yellow-300">
-                          {`${envConfig.NEXT_PUBLIC_CONTENT}${paymentId}`}
+                          {`${envConfig.NEXT_PUBLIC_CONTENT}${data.payload.paymentId}`}
                         </span>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() =>
                             copyToClipboard(
-                              `${envConfig.NEXT_PUBLIC_CONTENT}${paymentId}`,
+                              `${envConfig.NEXT_PUBLIC_CONTENT}${data.payload.paymentId}`,
                               "Nội dung chuyển khoản"
                             )
                           }
@@ -454,39 +442,37 @@ export default function PaymentDialog({
               <CardContent className="p-6">
                 <h4 className="font-semibold mb-4">Tóm tắt đơn hàng</h4>
                 <div className="space-y-3">
-                  {listCart.slice(0, 2).map((item) => (
+                  {orders.slice(0, 2).map((item) => (
                     <div key={item.id} className="flex items-center space-x-3">
                       <Image
-                        src={item.sku.image}
-                        alt={item.sku.product.name}
+                        src={item.image}
+                        alt={item.productName}
                         width={40}
                         height={40}
                         className="rounded-lg object-cover"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">
-                          {item.sku.product.name}
+                          {item.productName}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {item.sku.value.split("-").length > 1
-                            ? item.sku.value
-                                .split("-")
-                                .map((val) => `${val} • `)
-                            : item.sku.value
+                          {item.skuValue.split("-").length > 1
+                            ? item.skuValue.split("-").map((val) => `${val} • `)
+                            : item.skuValue
                                 .split("-")
                                 .map((val) => `${val}`)}{" "}
                           x{item.quantity}
                         </p>
                       </div>
                       <span className="text-sm font-semibold">
-                        {(item.sku.price * item.quantity).toLocaleString()}₫
+                        {(item.skuPrice * item.quantity).toLocaleString()}₫
                       </span>
                     </div>
                   ))}
 
-                  {listCart.length > 2 && (
+                  {orders.length > 2 && (
                     <p className="text-sm text-muted-foreground text-center">
-                      +{listCart.length - 2} sản phẩm khác
+                      +{orders.length - 2} sản phẩm khác
                     </p>
                   )}
 
@@ -495,7 +481,7 @@ export default function PaymentDialog({
                   <div className="flex justify-between font-bold text-lg">
                     <span>Tổng cộng:</span>
                     <span className="text-primary">
-                      {totalAmount.toLocaleString()}₫
+                      {total.toLocaleString()}₫
                     </span>
                   </div>
                 </div>

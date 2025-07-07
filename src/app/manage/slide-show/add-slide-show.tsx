@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusCircle, Upload } from "lucide-react";
+import { PlusCircle, Send, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -27,6 +27,7 @@ import {
 export default function AddSlideShow() {
   const [file, setFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const addSlideShowMutation = useAddSlideShowMutation();
   const updateMediaMutation = useUploadFileMediaMutation();
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
@@ -48,6 +49,7 @@ export default function AddSlideShow() {
   };
   const onSubmit = async (values: CreateSlideShowBodyType) => {
     if (addSlideShowMutation.isPending) return;
+    setIsSubmitting(true);
     try {
       let body = values;
       if (file) {
@@ -74,6 +76,8 @@ export default function AddSlideShow() {
         error,
         setError: form.setError,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   return (
@@ -147,6 +151,24 @@ export default function AddSlideShow() {
           </form>
         </Form>
         <DialogFooter>
+          <Button
+            type="submit"
+            form="add-slide-form"
+            disabled={isSubmitting}
+            className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                {"Đang thêm..."}
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                {"Thêm"}
+              </>
+            )}
+          </Button>
           <Button type="submit" form="add-slide-form">
             Save
           </Button>
