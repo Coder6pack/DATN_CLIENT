@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusCircle, Upload } from "lucide-react";
+import { PlusCircle, Send, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -29,6 +29,7 @@ import { handleHttpErrorApi } from "@/lib/utils";
 export default function AddEmployee() {
   const [file, setFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const addAccountMutation = useAddAccountMutation();
   const updateMediaMutation = useUploadFileMediaMutation();
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
@@ -55,6 +56,7 @@ export default function AddEmployee() {
   };
   const onSubmit = async (values: CreateUserBodyType) => {
     if (addAccountMutation.isPending) return;
+    setIsSubmitting(true);
     try {
       let body = values;
       if (file) {
@@ -73,12 +75,20 @@ export default function AddEmployee() {
           description: "Thêm tài khoản thành công",
         });
         setOpen(false);
+      } else {
+        toast({
+          title: "Lỗi",
+          variant: "destructive",
+          description: "Bạn cần phải cập nhật avatar",
+        });
       }
     } catch (error) {
       handleHttpErrorApi({
         error,
         setError: form.setError,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   return (
@@ -116,7 +126,9 @@ export default function AddEmployee() {
                   <FormItem>
                     <div className="flex gap-2 items-start justify-start">
                       <Avatar className="aspect-square w-[100px] h-[100px] rounded-md object-cover">
-                        <AvatarImage src={previewAvatarFromFile!} />
+                        <AvatarImage
+                          src={previewAvatarFromFile || "avatar.jpg"}
+                        />
                         <AvatarFallback className="rounded-none">
                           {name || "Avatar"}
                         </AvatarFallback>
@@ -260,8 +272,23 @@ export default function AddEmployee() {
           </form>
         </Form>
         <DialogFooter>
-          <Button type="submit" form="add-employee-form">
-            Thêm
+          <Button
+            type="submit"
+            form="add-employee-form"
+            disabled={isSubmitting}
+            className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                {"Đang thêm..."}
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                {"Thêm"}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -142,14 +142,6 @@ export default function CartDropDown() {
                   >
                     <Link href="/guest/cart">Xem giỏ hàng</Link>
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    size="sm"
-                    asChild
-                  >
-                    <Link href="/checkout">Thanh toán</Link>
-                  </Button>
                 </div>
               </div>
             </>

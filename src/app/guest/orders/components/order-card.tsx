@@ -9,6 +9,7 @@ import {
   Eye,
   Star,
   MapPin,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,8 +28,8 @@ import ReviewDialog from "./review-dialog";
 import { GetOrderPropsType } from "@/schemaValidations/order.model";
 import { statusConfig } from "@/constants/order.constant";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import { useGetReview } from "@/app/queries/useReview";
-import { GetReviewDetailResType } from "@/schemaValidations/review.model";
+import { useRouter } from "next/navigation";
+import OrderPayment from "./order-payment";
 
 const getStatusProgress = (status: string) => {
   switch (status) {
@@ -49,20 +50,12 @@ const getStatusProgress = (status: string) => {
 
 export default function OrderCard({ order }: GetOrderPropsType) {
   const StatusIcon = statusConfig[order.status].icon;
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const existingReviews: Record<number, GetReviewDetailResType> = {};
-  // order.items.forEach((item) => {
-  //   const { data } = useGetReview(
-  //     {
-  //       productId: item.productId?.toString() ?? "",
-  //       orderId: order.id.toString(),
-  //     },
-  //     !!item.productId // Chỉ gọi API khi productId hợp lệ
-  //   );
-  //   if (data) {
-  //     existingReviews[item.id] = data.payload;
-  //   }
-  // });
+  const router = useRouter();
+  const handlePaymentSuccess = () => {
+    router.refresh();
+  };
   return (
     <Card className="border-2 rounded-3xl hover:shadow-lg transition-all duration-300">
       <CardHeader className="pb-4">
@@ -217,7 +210,16 @@ export default function OrderCard({ order }: GetOrderPropsType) {
               Theo dõi
             </Button>
           )}
-
+          {order.status === "PENDING_PAYMENT" && (
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={() => setShowPaymentDialog(true)}
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Thanh toán
+            </Button>
+          )}
           {order.status === "CANCELLED" && (
             <Button size="sm" variant="destructive" className="flex-1">
               <AlertCircle className="h-4 w-4 mr-2" />
@@ -225,6 +227,12 @@ export default function OrderCard({ order }: GetOrderPropsType) {
             </Button>
           )}
         </div>
+        <OrderPayment
+          orderId={order.id}
+          open={showPaymentDialog}
+          onOpenChange={setShowPaymentDialog}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
       </CardContent>
     </Card>
   );

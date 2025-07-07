@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload } from "lucide-react";
+import { Send, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -46,6 +46,7 @@ export default function EditCategory({
       logo: "",
     },
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const updateCategoryMutation = useUpdateCategoryMutation();
   const updateMediaMutation = useUploadFileMediaMutation();
   const { data } = useGetCategory({
@@ -72,6 +73,7 @@ export default function EditCategory({
 
   const onSubmit = async (values: UpdateCategoryBodyType) => {
     if (updateCategoryMutation.isPending) return;
+    setIsSubmitting(true);
     try {
       let body: UpdateCategoryBodyType & { id: number } = {
         id: id as number,
@@ -103,6 +105,8 @@ export default function EditCategory({
         error,
         setError: form.setError,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   const test = (value: any) => {
@@ -191,8 +195,23 @@ export default function EditCategory({
           </form>
         </Form>
         <DialogFooter>
-          <Button type="submit" form="edit-category-form">
-            Save
+          <Button
+            type="submit"
+            form="edit-category-form"
+            disabled={isSubmitting}
+            className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                {"Đang thêm..."}
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                {"Thêm"}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

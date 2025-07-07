@@ -22,7 +22,7 @@ export default function ProductsSection({
 }: ProductsSectionProps) {
   const [page, setPage] = useState(1);
   const [allProducts, setAllProducts] = useState<ProductType[]>([]);
-  const limit = 12;
+  const limit = 9;
   const { data: listProduct, isLoading } = useListProducts({ page, limit });
 
   // Append new products to the existing list when new data is fetched
@@ -32,7 +32,6 @@ export default function ProductsSection({
         (product) =>
           product && product.id && !allProducts.some((p) => p.id === product.id)
       );
-      // console.log("Filtered New Products:", newProducts); // Debug filtered products
       setAllProducts((prevProducts) => [...prevProducts, ...newProducts]);
     }
   }, [listProduct]);
@@ -41,6 +40,11 @@ export default function ProductsSection({
   const validProducts = Array.from(
     new Map(allProducts.map((product) => [product.id, product])).values()
   ).filter((product) => product && product.id);
+
+  // Check if there are more products to load
+  const hasMoreProducts =
+    listProduct?.payload?.totalItems &&
+    validProducts.length < listProduct.payload.totalItems;
 
   if (validProducts.length === 0 && !isLoading) {
     return (
@@ -115,7 +119,7 @@ export default function ProductsSection({
             </Link>
           ))}
         </div>
-        {showViewAll && listProduct?.payload?.data && (
+        {showViewAll && hasMoreProducts && (
           <div className="text-center mt-12">
             <Button
               size="lg"

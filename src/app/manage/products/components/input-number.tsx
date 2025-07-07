@@ -31,7 +31,7 @@ export default function InputNumber({ id, field }: InputNumberProps) {
     <Input
       id={id}
       type="text"
-      value={field.value}
+      value={field.value.toLocaleString()}
       onChange={field.onChange}
       onKeyDown={(e) => {
         const allowedKeys = [

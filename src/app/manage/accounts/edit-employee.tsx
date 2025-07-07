@@ -15,7 +15,7 @@ import {
   UpdateUserBodyType,
 } from "@/schemaValidations/user.model";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload } from "lucide-react";
+import { Send, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -52,6 +52,7 @@ export default function EditEmployee({
   onSubmitSuccess?: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const form = useForm<UpdateUserBodyType>({
     resolver: zodResolver(UpdateUserBodySchema),
@@ -94,6 +95,7 @@ export default function EditEmployee({
 
   const onSubmit = async (values: UpdateUserBodyType) => {
     if (updateAccountMutation.isPending) return;
+    setIsSubmitting(true);
     try {
       let body: UpdateUserBodyType & { id: number } = {
         id: id as number,
@@ -127,11 +129,9 @@ export default function EditEmployee({
         error,
         setError: form.setError,
       });
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-  const test = (value: any) => {
-    console.log(value);
-    return true;
   };
   return (
     <Dialog
@@ -311,8 +311,23 @@ export default function EditEmployee({
           </form>
         </Form>
         <DialogFooter>
-          <Button type="submit" form="edit-employee-form">
-            Lưu
+          <Button
+            type="submit"
+            form="edit-employee-form"
+            disabled={isSubmitting}
+            className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                {"Đang lưu..."}
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                {"Cập nhật đánh giá"}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

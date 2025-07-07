@@ -19,9 +19,10 @@ import { decodeToken, handleHttpErrorApi } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoginBodySchema, LoginBodyType } from "@/schemaValidations/auth.model";
 import { useAppContext } from "@/components/app-provider";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import envConfig from "@/config";
+import { LogInIcon, Send } from "lucide-react";
 
 const getOauthGoogleUrl = () => {
   const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -42,6 +43,7 @@ const getOauthGoogleUrl = () => {
 const googleOauthUrl = getOauthGoogleUrl();
 console.log("googleOauthUrl", googleOauthUrl);
 export default function LoginForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const loginMutation = useLoginMutation();
   const searchParams = useSearchParams();
   const clearTokens = searchParams.get("clearTokens");
@@ -61,17 +63,18 @@ export default function LoginForm() {
   });
   const onSubmit = async (data: LoginBodyType) => {
     if (loginMutation.isPending) return;
+    setIsSubmitting(true);
     try {
       const result = await loginMutation.mutateAsync(data);
       const role = decodeToken(result.payload.refreshToken).roleName;
       if (result) {
-        if (role === "Admin") {
+        if (role === "Admin" || role === "Seller") {
           toast({
             description: "Login Admin successfully",
           });
           setIsAuth(true);
-          route.refresh();
           route.push("/manage/dashboard");
+          route.refresh();
         }
         if (role === "Client") {
           toast({
@@ -84,6 +87,8 @@ export default function LoginForm() {
       }
     } catch (error) {
       handleHttpErrorApi({ error, setError: form.setError });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -98,6 +103,7 @@ export default function LoginForm() {
       <CardContent>
         <Form {...form}>
           <form
+            id="login-form"
             className="space-y-2 max-w-[600px] flex-shrink-0 w-full"
             noValidate
             onSubmit={form.handleSubmit(onSubmit, (errors) => {
@@ -144,8 +150,23 @@ export default function LoginForm() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                Đăng nhập
+              <Button
+                type="submit"
+                form="login-form"
+                disabled={isSubmitting}
+                className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    {"Đang đăng nhập..."}
+                  </>
+                ) : (
+                  <>
+                    <LogInIcon className="h-4 w-4 mr-2" />
+                    {"Đăng nhập"}
+                  </>
+                )}
               </Button>
               <Link href={googleOauthUrl}>
                 <Button variant="outline" className="w-full" type="button">
@@ -158,21 +179,21 @@ export default function LoginForm() {
       </CardContent>
       <CardFooter className="flex flex-col space-y-4">
         <div className="text-center text-sm">
-          Already have an account?{" "}
+          Bạn đã có tài khoản?{" "}
           <Link
             href="/register"
             className="text-primary underline-offset-4 hover:underline"
           >
-            Sign up
+            Đăng ký
           </Link>
         </div>
         <div className="text-center text-sm">
-          Forgot your password?{" "}
+          Quên mật khẩu?{" "}
           <Link
             href="/forgot-password"
             className="text-primary underline-offset-4 hover:underline"
           >
-            Click here
+            Click vào đây
           </Link>
         </div>
       </CardFooter>

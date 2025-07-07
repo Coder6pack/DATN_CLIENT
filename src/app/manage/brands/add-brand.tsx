@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusCircle, Upload } from "lucide-react";
+import { PlusCircle, Send, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -28,6 +28,7 @@ import { useAddBrandMutation } from "@/app/queries/useBrand";
 
 export default function AddBrand() {
   const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const addBrandMutation = useAddBrandMutation();
   const updateMediaMutation = useUploadFileMediaMutation();
@@ -50,6 +51,7 @@ export default function AddBrand() {
   };
   const onSubmit = async (values: CreateBrandBodyType) => {
     if (addBrandMutation.isPending) return;
+    setIsSubmitting(true);
     try {
       let body = values;
       if (file) {
@@ -76,6 +78,8 @@ export default function AddBrand() {
         error,
         setError: form.setError,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   return (
@@ -165,8 +169,23 @@ export default function AddBrand() {
           </form>
         </Form>
         <DialogFooter>
-          <Button type="submit" form="add-brand-form">
-            Thêm
+          <Button
+            type="submit"
+            form="add-brand-form"
+            disabled={isSubmitting}
+            className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                {"Đang thêm..."}
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                {"Thêm"}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

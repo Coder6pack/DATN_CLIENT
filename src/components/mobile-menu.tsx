@@ -3,6 +3,11 @@ import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useState } from "react";
 import Link from "next/link";
+import { useLogoutMutation } from "@/app/queries/useAuth";
+import { useAppContext } from "./app-provider";
+import { useAccountMe } from "@/app/queries/useAccount";
+import { useRouter } from "next/router";
+import { handleHttpErrorApi } from "@/lib/utils";
 
 interface MobileMenuProps {
   isAuth: boolean;
@@ -14,11 +19,23 @@ export default function MobileMenu({
   isMobileMenuOpen,
 }: MobileMenuProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const mockUser = {
-    id: "1",
-    name: "Nguyễn Văn An",
-    email: "nguyenvanan@email.com",
-    avatar: "/placeholder.svg?height=40&width=40&text=User",
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const logoutMutation = useLogoutMutation();
+  const { setIsAuth } = useAppContext();
+  const { data } = useAccountMe();
+
+  const account = data?.payload;
+  const route = useRouter();
+  const handleLogout = async () => {
+    try {
+      logoutMutation.mutateAsync();
+      setIsAuth(false);
+      route.push("/");
+    } catch (error) {
+      handleHttpErrorApi({
+        error,
+      });
+    }
   };
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -58,19 +75,19 @@ export default function MobileMenu({
                 <div className="flex items-center space-x-3 px-2 py-2">
                   <Avatar className="h-10 w-10">
                     <AvatarImage
-                      src={mockUser.avatar || "/placeholder.svg"}
-                      alt={mockUser.name}
+                      src={account?.avatar || "/avatar.jpg"}
+                      alt={account?.name}
                     />
                     <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                      {mockUser.name.charAt(0)}
+                      {account?.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-semibold text-sm dark:text-white">
-                      {mockUser.name}
+                      {account?.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {mockUser.email}
+                      {account?.email}
                     </p>
                   </div>
                 </div>
@@ -88,19 +105,24 @@ export default function MobileMenu({
                   <Package className="h-4 w-4 mr-3" />
                   Đơn hàng của tôi
                 </Link>
-                <button className="flex items-center w-full px-2 py-2 text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200">
+                <Button
+                  onClick={handleLogout}
+                  className="flex items-center w-full px-2 py-2 text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
+                >
                   <LogOut className="h-4 w-4 mr-3" />
                   Đăng xuất
-                </button>
+                </Button>
               </div>
             ) : (
-              <Button
-                variant="default"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-3 transition-all duration-300 shadow-lg"
-              >
-                <LogIn className="h-4 w-4 mr-2" />
-                Đăng nhập
-              </Button>
+              <Link href="/login">
+                <Button
+                  variant="default"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-3 transition-all duration-300 shadow-lg"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Đăng nhập
+                </Button>
+              </Link>
             )}
           </div>
         </div>

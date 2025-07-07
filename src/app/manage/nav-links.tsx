@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, decodeToken, getRefreshTokenFromLocalStorage } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Package2, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,7 +40,12 @@ export default function NavLinks() {
       );
     }
   }, [collapsed, isMounted]);
-
+  const token = getRefreshTokenFromLocalStorage();
+  const decode = token ? decodeToken(token as string).roleName : null;
+  if (decode === null) return;
+  const filterMenuItems = menuItems.filter(
+    (item) => item.href !== "/manage/accounts"
+  );
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
   };
@@ -86,35 +91,69 @@ export default function NavLinks() {
         </div>
 
         <nav className="flex flex-col gap-1 px-2 py-4">
-          {menuItems.map((Item, index) => {
-            const isActive = pathname === Item.href;
-            return (
-              <Tooltip key={index} delayDuration={collapsed ? 300 : 0}>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={Item.href}
-                    className={cn(
-                      "flex h-10 items-center rounded-lg px-3 transition-colors hover:bg-accent hover:text-accent-foreground",
-                      {
-                        "bg-accent text-accent-foreground": isActive,
-                        "text-muted-foreground": !isActive,
-                      },
-                      collapsed && "justify-center px-2"
+          {decode === "Seller"
+            ? filterMenuItems.map((Item, index) => {
+                const isActive = pathname === Item.href;
+                return (
+                  <Tooltip key={index} delayDuration={collapsed ? 300 : 0}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={Item.href}
+                        className={cn(
+                          "flex h-10 items-center rounded-lg px-3 transition-colors hover:bg-accent hover:text-accent-foreground",
+                          {
+                            "bg-accent text-accent-foreground": isActive,
+                            "text-muted-foreground": !isActive,
+                          },
+                          collapsed && "justify-center px-2"
+                        )}
+                      >
+                        <Item.Icon className="h-5 w-5 min-w-5" />
+                        {!collapsed && (
+                          <span className="ml-3 truncate">{Item.title}</span>
+                        )}
+                        {collapsed && (
+                          <span className="sr-only">{Item.title}</span>
+                        )}
+                      </Link>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right">{Item.title}</TooltipContent>
                     )}
-                  >
-                    <Item.Icon className="h-5 w-5 min-w-5" />
-                    {!collapsed && (
-                      <span className="ml-3 truncate">{Item.title}</span>
+                  </Tooltip>
+                );
+              })
+            : menuItems.map((Item, index) => {
+                const isActive = pathname === Item.href;
+                return (
+                  <Tooltip key={index} delayDuration={collapsed ? 300 : 0}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={Item.href}
+                        className={cn(
+                          "flex h-10 items-center rounded-lg px-3 transition-colors hover:bg-accent hover:text-accent-foreground",
+                          {
+                            "bg-accent text-accent-foreground": isActive,
+                            "text-muted-foreground": !isActive,
+                          },
+                          collapsed && "justify-center px-2"
+                        )}
+                      >
+                        <Item.Icon className="h-5 w-5 min-w-5" />
+                        {!collapsed && (
+                          <span className="ml-3 truncate">{Item.title}</span>
+                        )}
+                        {collapsed && (
+                          <span className="sr-only">{Item.title}</span>
+                        )}
+                      </Link>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right">{Item.title}</TooltipContent>
                     )}
-                    {collapsed && <span className="sr-only">{Item.title}</span>}
-                  </Link>
-                </TooltipTrigger>
-                {collapsed && (
-                  <TooltipContent side="right">{Item.title}</TooltipContent>
-                )}
-              </Tooltip>
-            );
-          })}
+                  </Tooltip>
+                );
+              })}
         </nav>
 
         <nav className="mt-auto flex flex-col gap-1 px-2 py-4">

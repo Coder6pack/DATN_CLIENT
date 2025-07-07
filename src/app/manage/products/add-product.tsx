@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { useState } from "react";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +67,7 @@ async function resolveSkus(skuPromises: Promise<SKU>[]): Promise<SKU[]> {
 export default function AddProduct() {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clearImage, setClearImage] = useState(false);
   const form = useForm<CreateProductBodyType>({
     resolver: zodResolver(CreateProductBodySchema),
     defaultValues: {
@@ -82,6 +83,7 @@ export default function AddProduct() {
     },
   });
   const images = form.watch("images");
+  const virtualPrice = form.watch("virtualPrice");
   const watchedVariants = form.watch("variants");
   const sKus = form.watch("skus");
 
@@ -119,6 +121,7 @@ export default function AddProduct() {
   };
   const onSubmit = async (values: CreateProductBodyType) => {
     if (addProductMutation.isPending) return;
+    setIsSubmitting(true);
     try {
       let body = values;
       if (images !== undefined && sKus !== undefined) {
@@ -148,18 +151,29 @@ export default function AddProduct() {
           skus: newSkus,
         };
         const result = await addProductMutation.mutateAsync(body);
-        toast({
-          description: "Create product successfully",
-        });
-        setOpen(false);
-        setIsSubmitting(true);
-        reset();
+        if (result) {
+          toast({
+            description: "Tạo sản phẩm thành công",
+          });
+          setOpen(false);
+          setIsSubmitting(true);
+          reset();
+          setClearImage(true);
+        } else {
+          toast({
+            title: "Lỗi không thêm được",
+            variant: "destructive",
+            description: "Tạo sản phẩm không thành công, hãy kiểm tra lại",
+          });
+        }
       }
     } catch (error) {
       handleHttpErrorApi({
         error,
         setError: form.setError,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   return (
@@ -348,6 +362,8 @@ export default function AddProduct() {
                               value={field.value}
                               onChange={field.onChange}
                               maxImages={10}
+                              clearImage={clearImage}
+                              setClearImage={setClearImage}
                             />
                           </FormControl>
                           <FormMessage />
@@ -393,6 +409,7 @@ export default function AddProduct() {
                           <FormControl>
                             {/* Component SkuListField mới với variants được truyền vào */}
                             <SkuListField
+                              virtualPrice={virtualPrice}
                               value={field.value}
                               onChange={field.onChange}
                               variants={watchedVariants} // Truyền variants từ form
@@ -412,8 +429,19 @@ export default function AddProduct() {
                     type="submit"
                     form="add-product-form"
                     disabled={isSubmitting}
+                    className="px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
                   >
-                    {isSubmitting ? "Đang lưu..." : "Lưu sản phẩm"}
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        {"Đang thêm..."}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        {"Thêm"}
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>
