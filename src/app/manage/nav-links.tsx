@@ -41,7 +41,8 @@ export default function NavLinks() {
     }
   }, [collapsed, isMounted]);
   const token = getRefreshTokenFromLocalStorage();
-  const decode = decodeToken(token as string).roleName;
+  const decode = token ? decodeToken(token as string).roleName : null;
+  if (decode === null) return;
   const filterMenuItems = menuItems.filter(
     (item) => item.href !== "/manage/accounts"
   );
