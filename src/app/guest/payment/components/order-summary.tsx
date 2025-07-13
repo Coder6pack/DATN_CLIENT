@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import PaymentDialog from "./paymment-dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useListCart } from "@/app/queries/useCart";
 import { generateQrCode, handleHttpErrorApi, parseVariants } from "@/lib/utils";
 import { useAddOrderMutation } from "@/app/queries/useOrder";

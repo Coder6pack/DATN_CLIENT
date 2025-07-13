@@ -64,6 +64,7 @@ import {
 import {
   useCancelOrderMutation,
   useListOrderManage,
+  useUpdateOrderMutation,
 } from "@/app/queries/useOrder";
 
 import OrderDetail from "./order-detail";
@@ -210,11 +211,13 @@ export const columns: ColumnDef<OrderListItem>[] = [
               <Eye className="w-4 h-4 mr-2" />
               View Details
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={openUpdateStatus}>
-              <Package className="w-4 h-4 mr-2" />
-              Update Status
-            </DropdownMenuItem>
-            {!["DELIVERED", "RETURNED"].includes(row.original.status) && (
+            {!["DELIVERED", "CANCELLED"].includes(row.original.status) && (
+              <DropdownMenuItem onClick={openUpdateStatus}>
+                <Package className="w-4 h-4 mr-2" />
+                Update Status
+              </DropdownMenuItem>
+            )}
+            {row.original.status === "PENDING_PAYMENT" && (
               <DropdownMenuItem
                 onClick={openDeleteOrder}
                 className="text-destructive"
@@ -236,15 +239,13 @@ function AlertDialogDeleteOrder({
   orderDelete: OrderListItem | null;
   setOrderDelete: (value: OrderListItem | null) => void;
 }) {
-  const { mutateAsync } = useCancelOrderMutation();
+  const { mutateAsync } = useUpdateOrderMutation();
 
   const handleDelete = async () => {
     if (orderDelete) {
       try {
-        await mutateAsync({
-          id: orderDelete.id,
-          body: {},
-        });
+        console.log(orderDelete.id);
+        await mutateAsync({ id: orderDelete.id, status: "CANCELLED" });
         toast({
           title: "Order cancelled",
           description: `Order #${orderDelete.id} has been cancelled successfully.`,
@@ -438,15 +439,6 @@ export default function OrderTable() {
     }
   }, [getOrders.error]);
 
-  // Debug refetch và response
-  useEffect(() => {
-    if (getOrders.isFetching) {
-      console.log("Refetching with params:", params);
-    }
-    if (getOrders.data) {
-      console.log("Response:", getOrders.data);
-    }
-  }, [getOrders.isFetching, getOrders.data, params]);
   const handlePageChange = (pageNumber: number) => {
     const newPageIndex = pageNumber - 1;
     table.setPageIndex(newPageIndex);

@@ -8,16 +8,6 @@ import ShippingForm from "./components/shipping-form";
 import PaymentMethod from "./components/payment-method";
 import OrderSummary from "./components/order-summary";
 
-interface CartItem {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  quantity: number;
-  size: string;
-  color: string;
-}
-
 export default function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState("online");
   const [onlineMethod, setOnlineMethod] = useState("card");

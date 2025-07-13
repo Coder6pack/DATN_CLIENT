@@ -50,7 +50,7 @@ const orderApiRequest = {
   updateOrder: (id: number, body: UpdateOrderBodyType) =>
     http.put<UpdateOrderResType>(`/orders/update-status/${id}`, body),
 
-  cancelOrder: (id: number, body: {}) => http.put(`/orders/${id}`, body),
+  cancelOrder: (orderId: number) => http.put(`/orders/${orderId}`, {}),
 };
 
 export default orderApiRequest;
