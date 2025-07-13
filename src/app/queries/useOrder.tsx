@@ -77,8 +77,7 @@ export const useUpdateOrderMutation = () => {
 export const useCancelOrderMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, body }: { id: number; body: {} }) =>
-      orderApiRequest.cancelOrder(id, body),
+    mutationFn: (orderId: number) => orderApiRequest.cancelOrder(orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["orders"],

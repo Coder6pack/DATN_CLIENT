@@ -87,8 +87,9 @@ export default function UpdateOrderStatus({
 
   useEffect(() => {
     if (orderDetail && !status) {
+      const availableStatuses = getAvailableStatuses(orderDetail.status);
       form.reset({
-        status: orderDetail.status,
+        status: availableStatuses[0] || orderDetail.status,
       });
     }
   }, [orderDetail, form]);
@@ -134,17 +135,11 @@ export default function UpdateOrderStatus({
   ): OrderStatusType[] => {
     switch (currentStatus) {
       case OrderStatus.PENDING_PAYMENT:
-        return [OrderStatus.PENDING_PICKUP, OrderStatus.CANCELLED];
+        return [OrderStatus.PENDING_PICKUP];
       case OrderStatus.PENDING_PICKUP:
-        return [OrderStatus.PENDING_DELIVERY, OrderStatus.CANCELLED];
+        return [OrderStatus.PENDING_DELIVERY, OrderStatus.DELIVERED];
       case OrderStatus.PENDING_DELIVERY:
-        return [OrderStatus.DELIVERED, OrderStatus.RETURNED];
-      case OrderStatus.DELIVERED:
-        return [OrderStatus.DELIVERED, OrderStatus.RETURNED];
-      case OrderStatus.RETURNED:
-        return [OrderStatus.RETURNED];
-      case OrderStatus.CANCELLED:
-        return [OrderStatus.CANCELLED];
+        return [OrderStatus.DELIVERED];
       default:
         return Object.values(OrderStatus) as OrderStatusType[];
     }

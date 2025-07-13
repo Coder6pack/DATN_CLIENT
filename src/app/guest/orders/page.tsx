@@ -21,36 +21,43 @@ import { useSocket } from "@/lib/socket";
 
 export default function OrdersPage() {
   const { socket, isConnected } = useSocket();
+  const [allOrders, setAllOrders] = useState<GetOrdersType>({ data: [] });
   const [filteredOrders, setFilteredOrders] = useState<GetOrdersType>({
     data: [],
   });
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const { data, refetch } = useListOrder({ page: 1, limit: 100 });
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const { data, refetch } = useListOrder({ page, limit });
+  const [hasMore, setHasMore] = useState(true);
 
-  // Cập nhật filteredOrders khi data thay đổi
+  // Update allOrders when new data is fetched
   useEffect(() => {
     if (!data) {
       setLoading(true);
       return;
     }
-    const orders = data?.payload || { data: [] };
-    setFilteredOrders(orders);
+    const newOrders = data?.payload || { data: [] };
+    setAllOrders((prev) => ({
+      ...newOrders,
+      data: page === 1 ? newOrders.data : [...prev.data, ...newOrders.data],
+    }));
+    setHasMore(newOrders.data.length === limit);
     setLoading(false);
-  }, [data]);
+  }, [data, page]);
 
-  // Áp dụng bộ lọc khi selectedStatus hoặc searchQuery thay đổi
+  // Apply filters when allOrders, selectedStatus, or searchQuery changes
   useEffect(() => {
-    if (!data) return;
-    let filtered = [...data.payload.data];
+    let filtered = [...allOrders.data];
 
-    // Lọc theo trạng thái
+    // Filter by status
     if (selectedStatus !== "all") {
       filtered = filtered.filter((order) => order.status === selectedStatus);
     }
 
-    // Lọc theo từ khóa tìm kiếm
+    // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(
         (order) =>
@@ -64,20 +71,22 @@ export default function OrdersPage() {
       );
     }
 
-    setFilteredOrders({ ...data.payload, data: filtered });
-  }, [data, selectedStatus, searchQuery]);
+    setFilteredOrders({ ...allOrders, data: filtered });
+  }, [allOrders, selectedStatus, searchQuery]);
 
-  // Xử lý socket để cập nhật đơn hàng
+  // Handle socket updates
   useEffect(() => {
     if (!socket) return;
 
     const handlePayment = (paymentData: { status: string }) => {
       if (paymentData.status === "success") {
+        setPage(1);
         refetch();
       }
     };
     const handleUpdateOrder = (paymentData: { status: string }) => {
       if (paymentData.status === "success") {
+        setPage(1);
         refetch();
       }
     };
@@ -89,14 +98,20 @@ export default function OrdersPage() {
     };
   }, [socket, refetch]);
 
-  // Hàm xóa bộ lọc
+  // Clear filters
   const clearFilters = () => {
     setSelectedStatus("all");
     setSearchQuery("");
-    setFilteredOrders(data?.payload || { data: [] });
+    setPage(1);
+    refetch();
   };
 
-  if (!data) {
+  // Load more orders
+  const loadMore = () => {
+    setPage((prev) => prev + 1);
+  };
+
+  if (!data && loading && page === 1) {
     return (
       <div className="flex justify-center">
         <div className={"relative w-16 h-16"}>
@@ -107,7 +122,7 @@ export default function OrdersPage() {
     );
   }
 
-  const orders = data?.payload.data || [];
+  const orders = filteredOrders.data || [];
 
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
@@ -203,7 +218,7 @@ export default function OrdersPage() {
         {/* Order Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-12">
           {Object.entries(statusConfig).map(([status, config]) => {
-            const count = orders.filter(
+            const count = allOrders.data.filter(
               (order) => order.status === status
             ).length;
             const StatusIcon = config.icon;
@@ -236,7 +251,7 @@ export default function OrdersPage() {
         </div>
 
         {/* Orders List */}
-        {loading ? (
+        {loading && page === 1 ? (
           <div className="grid gap-8">
             {[...Array(3)].map((_, i) => (
               <Card
@@ -302,14 +317,16 @@ export default function OrdersPage() {
             </div>
 
             {/* Load More */}
-            {Number(filteredOrders.data.length) >= 10 && (
+            {hasMore && filteredOrders.data.length >= limit && (
               <div className="text-center">
                 <Button
                   variant="outline"
                   size="lg"
                   className="px-8 py-4 rounded-2xl border-2"
+                  onClick={loadMore}
+                  disabled={loading}
                 >
-                  Xem thêm đơn hàng
+                  {loading ? "Đang tải..." : "Xem thêm đơn hàng"}
                 </Button>
               </div>
             )}

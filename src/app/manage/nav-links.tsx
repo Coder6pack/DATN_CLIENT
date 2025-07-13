@@ -16,40 +16,40 @@ import { Button } from "@/components/ui/button";
 
 export default function NavLinks() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // Mặc định false cho cả server và client
   const [isMounted, setIsMounted] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
 
-  // Handle initial state from localStorage when component mounts
   useEffect(() => {
     setIsMounted(true);
     const savedState = localStorage.getItem("navCollapsed");
     if (savedState !== null) {
       setCollapsed(savedState === "true");
     }
+    const token = getRefreshTokenFromLocalStorage();
+    const decodedRole = token ? decodeToken(token).roleName : "";
+    setRole(decodedRole);
   }, []);
 
-  // Save collapsed state to localStorage and dispatch custom event
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem("navCollapsed", String(collapsed));
-      // Dispatch custom event to notify layout
       window.dispatchEvent(
-        new CustomEvent("navToggle", {
-          detail: { collapsed },
-        })
+        new CustomEvent("navToggle", { detail: { collapsed } })
       );
     }
   }, [collapsed, isMounted]);
-  const token = getRefreshTokenFromLocalStorage();
-  const decode = token ? decodeToken(token as string).roleName : null;
-  if (decode === null) return;
-  const filterMenuItems = menuItems.filter(
-    (item) => item.href !== "/manage/accounts"
-  );
+
+  if (!isMounted || !role) return null; // Trì hoãn render cho đến khi mount
+
+  const filterMenuItems =
+    role === "Seller"
+      ? menuItems.filter((item) => item.href !== "/manage/accounts")
+      : menuItems;
+
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
   };
-
   return (
     <TooltipProvider>
       <aside
@@ -91,7 +91,7 @@ export default function NavLinks() {
         </div>
 
         <nav className="flex flex-col gap-1 px-2 py-4">
-          {decode === "Seller"
+          {role === "Seller"
             ? filterMenuItems.map((Item, index) => {
                 const isActive = pathname === Item.href;
                 return (

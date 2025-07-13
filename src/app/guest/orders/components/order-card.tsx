@@ -30,6 +30,11 @@ import { statusConfig } from "@/constants/order.constant";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import OrderPayment from "./order-payment";
+import { useCancelOrderMutation } from "@/app/queries/useOrder";
+import { toast } from "@/hooks/use-toast";
+import { handleHttpErrorApi } from "@/lib/utils";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import CancelOrder from "./cancel-order";
 
 const getStatusProgress = (status: string) => {
   switch (status) {
@@ -52,10 +57,12 @@ export default function OrderCard({ order }: GetOrderPropsType) {
   const StatusIcon = statusConfig[order.status].icon;
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [open, setOpen] = useState(false);
   const router = useRouter();
   const handlePaymentSuccess = () => {
     router.refresh();
   };
+
   return (
     <Card className="border-2 rounded-3xl hover:shadow-lg transition-all duration-300">
       <CardHeader className="pb-4">
@@ -203,13 +210,6 @@ export default function OrderCard({ order }: GetOrderPropsType) {
               />
             </>
           )}
-
-          {order.status === "PENDING_PICKUP" && (
-            <Button size="sm" variant="secondary" className="flex-1">
-              <MapPin className="h-4 w-4 mr-2" />
-              Theo dõi
-            </Button>
-          )}
           {order.status === "PENDING_PAYMENT" && (
             <Button
               size="sm"
@@ -220,13 +220,19 @@ export default function OrderCard({ order }: GetOrderPropsType) {
               Thanh toán
             </Button>
           )}
-          {order.status === "CANCELLED" && (
-            <Button size="sm" variant="destructive" className="flex-1">
+          {order.status === "PENDING_PAYMENT" && (
+            <Button
+              onClick={() => setOpen(true)}
+              size="sm"
+              variant="destructive"
+              className="flex-1"
+            >
               <AlertCircle className="h-4 w-4 mr-2" />
               Hủy đơn
             </Button>
           )}
         </div>
+        <CancelOrder open={open} onOpenChange={setOpen} orderId={order.id} />
         <OrderPayment
           orderId={order.id}
           open={showPaymentDialog}
