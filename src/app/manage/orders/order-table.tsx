@@ -211,7 +211,9 @@ export const columns: ColumnDef<OrderListItem>[] = [
               <Eye className="w-4 h-4 mr-2" />
               View Details
             </DropdownMenuItem>
-            {!["DELIVERED", "CANCELLED"].includes(row.original.status) && (
+            {!["PENDING_PAYMENT", "DELIVERED", "CANCELLED"].includes(
+              row.original.status
+            ) && (
               <DropdownMenuItem onClick={openUpdateStatus}>
                 <Package className="w-4 h-4 mr-2" />
                 Update Status

@@ -96,9 +96,21 @@ export default function EditProduct({
   });
 
   const images = form.watch("images");
+  const basePrice = form.watch("basePrice");
   const virtualPrice = form.watch("virtualPrice");
   const watchedVariants = form.watch("variants");
   const sKus = form.watch("skus");
+  let sKusValidatePrice: {
+    value: string;
+    price: number;
+    stock: number;
+    image: string;
+  }[];
+  if (sKus) {
+    sKusValidatePrice = sKus.filter(
+      (item) => item.price < basePrice || item.price > virtualPrice
+    );
+  }
   // Always call these hooks regardless of id value
   const {
     data: productDetail,
@@ -214,6 +226,24 @@ export default function EditProduct({
 
     setIsSubmitting(true);
     try {
+      if (Number(basePrice) > Number(virtualPrice)) {
+        toast({
+          title: "Lỗi giá trị",
+          variant: "destructive",
+          description:
+            "basePrice và VirtualPrice có giá trị không đúng, hãy kiểm tra lại",
+        });
+        return;
+      }
+      if (sKusValidatePrice.length > 0) {
+        toast({
+          title: "Lỗi giá trị",
+          variant: "destructive",
+          description:
+            "Giá của sku không được nhỏ hơn basePrice và lớn hơn virtualPrice",
+        });
+        return;
+      }
       let body: UpdateProductBodyType & { id: number } = {
         id,
         ...values,

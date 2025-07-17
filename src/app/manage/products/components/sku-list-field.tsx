@@ -185,7 +185,6 @@ export default function SkuListField({
             <div>
               <Input
                 type="text"
-                placeholder="0"
                 className="w-full"
                 value={
                   sku.price?.toLocaleString() ?? virtualPrice.toLocaleString()

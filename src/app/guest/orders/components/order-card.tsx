@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import OrderDetail from "./order-detail";
 import ReviewDialog from "./review-dialog";
 import { GetOrderPropsType } from "@/schemaValidations/order.model";
@@ -57,8 +57,15 @@ export default function OrderCard({ order }: GetOrderPropsType) {
   const StatusIcon = statusConfig[order.status].icon;
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [onReload, setOnReload] = useState(false);
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  useEffect(() => {
+    if (onReload) {
+      setOnReload(false);
+      router.refresh();
+    }
+  }, [onReload, setOnReload, router]);
   const handlePaymentSuccess = () => {
     router.refresh();
   };
@@ -232,7 +239,12 @@ export default function OrderCard({ order }: GetOrderPropsType) {
             </Button>
           )}
         </div>
-        <CancelOrder open={open} onOpenChange={setOpen} orderId={order.id} />
+        <CancelOrder
+          open={open}
+          onOpenChange={setOpen}
+          orderId={order.id}
+          onReload={setOnReload}
+        />
         <OrderPayment
           orderId={order.id}
           open={showPaymentDialog}
