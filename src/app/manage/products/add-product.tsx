@@ -83,9 +83,13 @@ export default function AddProduct() {
     },
   });
   const images = form.watch("images");
+  const basePrice = form.watch("basePrice");
   const virtualPrice = form.watch("virtualPrice");
   const watchedVariants = form.watch("variants");
   const sKus = form.watch("skus");
+  const sKusValidatePrice = sKus.filter(
+    (item) => item.price < basePrice || item.price > virtualPrice
+  );
 
   const addProductMutation = useAddProductMutation();
   const updateMediaMutation = useUploadFileMediaMutation();
@@ -123,6 +127,24 @@ export default function AddProduct() {
     if (addProductMutation.isPending) return;
     setIsSubmitting(true);
     try {
+      if (Number(basePrice) > Number(virtualPrice)) {
+        toast({
+          title: "Lỗi giá trị",
+          variant: "destructive",
+          description:
+            "basePrice và VirtualPrice có giá trị không đúng, hãy kiểm tra lại",
+        });
+        return;
+      }
+      if (sKusValidatePrice.length > 0) {
+        toast({
+          title: "Lỗi giá trị",
+          variant: "destructive",
+          description:
+            "Giá của sku không được nhỏ hơn basePrice và lớn hơn virtualPrice",
+        });
+        return;
+      }
       let body = values;
       if (images !== undefined && sKus !== undefined) {
         const formData = await addBlobUrlsToFormData(images);

@@ -47,11 +47,13 @@ export default function OrderSummary({
   const router = useRouter();
   const { data, refetch } = useListCart({ page: 1, limit: 100 });
   const createOrderMutation = useAddOrderMutation();
-  if (!data || !data.payload.data) {
-    return;
+  if (!data || !data.payload.data || data.payload.data.length === 0) {
+    refetch();
+    return <div>Loading</div>;
   }
   const listCart =
     data.payload.data.length === 0 ? [] : data.payload.data[0].cartItems;
+  console.log("listCart", data.payload.data);
   const getCartItems = listCart.map((item) => item.id);
 
   const subtotal = listCart.reduce(

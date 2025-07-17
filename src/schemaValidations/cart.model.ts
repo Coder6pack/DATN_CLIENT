@@ -57,7 +57,7 @@ export const UpdateCartItemBodySchema = AddToCartBodySchema;
 
 export const DeleteCartBodySchema = z
   .object({
-    cartItemIds: z.array(z.number().int().positive()),
+    cartItemIds: z.array(z.number()),
   })
   .strict();
 

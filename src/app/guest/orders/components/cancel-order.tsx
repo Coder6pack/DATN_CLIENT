@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,43 +9,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import {
-  QrCode,
-  Copy,
-  CheckCircle,
-  Clock,
-  CreditCard,
-  Smartphone,
-  Building2,
-  User,
-  Hash,
-  DollarSign,
-  Sparkles,
-  Delete,
-} from "lucide-react";
+import { Delete } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import envConfig from "@/config";
-import { useSocket } from "@/lib/socket";
-import { useRouter } from "next/navigation";
-import { useCancelOrderMutation, useGetOrder } from "@/app/queries/useOrder";
-import { generateQrCode, handleHttpErrorApi } from "@/lib/utils";
+import { useCancelOrderMutation } from "@/app/queries/useOrder";
+import { handleHttpErrorApi } from "@/lib/utils";
 
 interface CancelOrderDialogProps {
   open: boolean;
   orderId: number;
   onOpenChange: (open: boolean) => void;
+  onReload: (reload: boolean) => void;
 }
 
 export default function CancelOrder({
   open,
   orderId,
   onOpenChange,
+  onReload,
 }: CancelOrderDialogProps) {
   const { mutateAsync } = useCancelOrderMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
   const handleOnclick = async () => {
     setIsSubmitting(true);
     try {
@@ -56,8 +38,8 @@ export default function CancelOrder({
           title: "Cập nhật thành công",
           description: "Bạn đã huỷ đơn hàng thành công",
         });
+        onReload(true);
         onOpenChange(false);
-        router.refresh();
       }
     } catch (error) {
       handleHttpErrorApi({

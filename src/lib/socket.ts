@@ -1,26 +1,3 @@
-// import envConfig from "@/config";
-// import { io } from "socket.io-client";
-// // Cấu hình kết nối WebSocket
-// const socket = io("localhost:3003");
-
-// // Sự kiện khi kết nối thành công
-// socket.on("connect", () => {
-//   console.log("Đã kết nối với server WebSocket:", socket.id);
-// });
-
-// // Sự kiện khi có lỗi kết nối
-// // socket.on("connect_error", (error) => {
-// //   console.error("Lỗi kết nối:", error.message);
-// // });
-
-// // Sự kiện khi ngắt kết nối
-// socket.on("disconnect", (reason) => {
-//   console.log("Ngắt kết nối:", reason);
-// });
-
-// // Xuất socket để sử dụng ở nơi khác
-// export default socket;
-
 import envConfig from "@/config";
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";

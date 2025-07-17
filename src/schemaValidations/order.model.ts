@@ -65,7 +65,7 @@ export const CreateOrderBodySchema = z
         phone: z.string().min(9).max(20),
         address: z.string(),
       }),
-      cartItemIds: z.array(z.number()).min(1),
+      cartItemIds: z.array(z.number()),
     })
   )
   .min(1);
