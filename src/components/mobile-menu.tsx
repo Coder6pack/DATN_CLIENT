@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useLogoutMutation } from "@/app/queries/useAuth";
 import { useAppContext } from "./app-provider";
 import { useAccountMe } from "@/app/queries/useAccount";
-import { useRouter } from "next/router";
 import { handleHttpErrorApi } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 interface MobileMenuProps {
   isAuth: boolean;
@@ -23,7 +23,7 @@ export default function MobileMenu({
   const logoutMutation = useLogoutMutation();
   const { setIsAuth } = useAppContext();
   const { data } = useAccountMe();
-
+  console.log("isMobileMenuOpen", isMobileMenuOpen);
   const account = data?.payload;
   const route = useRouter();
   const handleLogout = async () => {
