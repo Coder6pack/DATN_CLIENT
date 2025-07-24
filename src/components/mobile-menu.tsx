@@ -23,7 +23,6 @@ export default function MobileMenu({
   const logoutMutation = useLogoutMutation();
   const { setIsAuth } = useAppContext();
   const { data } = useAccountMe();
-  console.log("isMobileMenuOpen", isMobileMenuOpen);
   const account = data?.payload;
   const route = useRouter();
   const handleLogout = async () => {
