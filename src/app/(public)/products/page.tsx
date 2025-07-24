@@ -132,7 +132,7 @@ export default function ProductsPage() {
     showOnSale,
     minRating,
   ]);
-
+  console.log("priceRange", priceRange);
   const clearFilters = () => {
     // Reset all filter states
     setSelectedCategory("Tất cả");

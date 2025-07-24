@@ -47,7 +47,6 @@ export default function ProductFilters({
   }
   const brands = brandList.payload.data;
   const categories = cateList.payload.data;
-
   return (
     <Card className="sticky top-8 border-2 rounded-3xl">
       <CardContent className="p-6 max-h-[calc(100vh-6rem)] overflow-y-auto">
